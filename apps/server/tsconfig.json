@@ -1,0 +1,11 @@
+{
+  "extends": "@agent-zoo/tsconfig/server.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "declaration": true
+  },
+  "references": [{ "path": "../../packages/shared" }],
+  "include": ["src/**/*"]
+}

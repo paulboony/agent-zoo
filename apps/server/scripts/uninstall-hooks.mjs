@@ -68,7 +68,12 @@ async function main() {
 }
 
 async function atomicWrite(target, content) {
-  const tmp = `${target}.tmp`;
+  const resolved = await fs.realpath(target).catch(() => target);
+  const mode = await fs
+    .stat(resolved)
+    .then((s) => s.mode)
+    .catch(() => null);
+  const tmp = `${resolved}.tmp.${process.pid}.${Date.now()}`;
   const fh = await fs.open(tmp, "w");
   try {
     await fh.writeFile(content);
@@ -76,7 +81,13 @@ async function atomicWrite(target, content) {
   } finally {
     await fh.close();
   }
-  await fs.rename(tmp, target);
+  if (mode !== null) await fs.chmod(tmp, mode);
+  try {
+    await fs.rename(tmp, resolved);
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => {});
+    throw err;
+  }
 }
 
 main().catch((err) => {

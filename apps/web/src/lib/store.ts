@@ -7,22 +7,20 @@ export type ConnectionState = "connecting" | "open" | "closed";
 interface ClientState {
   sessions: Record<string, SessionState>;
   seq: number;
-  selectedSessionId: string | null;
   connection: ConnectionState;
   applySnapshot: (seq: number, sessions: SessionState[]) => void;
   applyMessage: (msg: SseMessage) => void;
   setConnection: (c: ConnectionState) => void;
-  selectSession: (id: string | null) => void;
 }
 
 export const useStore = create<ClientState>((set) => ({
   sessions: {},
   seq: 0,
-  selectedSessionId: null,
   connection: "connecting",
 
   applySnapshot: (seq, sessions) =>
-    set(() => {
+    set((state) => {
+      if (seq <= state.seq) return state;
       const map: Record<string, SessionState> = {};
       for (const s of sessions) map[s.id] = s;
       return { seq, sessions: map };
@@ -49,11 +47,15 @@ export const useStore = create<ClientState>((set) => ({
         }
         case "heartbeat":
           return { seq: msg.seq };
+        default: {
+          const _exhaustive: never = msg;
+          void _exhaustive;
+          return state;
+        }
       }
     }),
 
   setConnection: (connection) => set({ connection }),
-  selectSession: (id) => set({ selectedSessionId: id }),
 }));
 
 export function sortSessions(sessions: Record<string, SessionState>): SessionState[] {

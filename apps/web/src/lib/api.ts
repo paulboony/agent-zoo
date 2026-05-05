@@ -19,7 +19,10 @@ export function openStream(): () => void {
 
   const source = new EventSource("/stream");
   source.onopen = () => useStore.getState().setConnection("open");
-  source.onerror = () => useStore.getState().setConnection("closed");
+  source.onerror = () => {
+    const next = source.readyState === EventSource.CLOSED ? "closed" : "connecting";
+    useStore.getState().setConnection(next);
+  };
   source.onmessage = (evt) => {
     let msg: SseMessage;
     try {

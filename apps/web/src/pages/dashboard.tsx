@@ -22,10 +22,6 @@ export function Dashboard() {
     return close;
   }, []);
 
-  useEffect(() => {
-    useStore.getState().selectSession(selectedId);
-  }, [selectedId]);
-
   return (
     <div className="flex h-full">
       <aside className="flex w-80 shrink-0 flex-col border-border border-r">

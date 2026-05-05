@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card.js";
 import { cn } from "@/lib/cn.js";
 import type { SessionState } from "@agent-zoo/shared";
+import { statusUrgency } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -13,23 +14,8 @@ interface Props {
 function pickHeroAgent(session: SessionState) {
   const agents = Object.values(session.agents);
   if (agents.length === 0) return null;
-  const ranked = agents.slice().sort((a, b) => agentUrgency(b.status) - agentUrgency(a.status));
+  const ranked = agents.slice().sort((a, b) => statusUrgency(b.status) - statusUrgency(a.status));
   return ranked[0] ?? null;
-}
-
-function agentUrgency(status: string): number {
-  switch (status) {
-    case "error":
-      return 4;
-    case "waiting_for_human":
-      return 3;
-    case "running":
-      return 2;
-    case "idle":
-      return 1;
-    default:
-      return 0;
-  }
 }
 
 function elapsed(fromIso: string): string {

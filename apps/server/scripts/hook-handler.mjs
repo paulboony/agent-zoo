@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const HARD_TIMEOUT_MS = 5000;
 const HTTP_TIMEOUT_MS = 3000;
-const URL = process.env.CLAUDE_DASHBOARD_URL ?? "http://127.0.0.1:7777/hook";
+const ENDPOINT = process.env.CLAUDE_DASHBOARD_ENDPOINT ?? "http://127.0.0.1:7777/hook";
 
 const safety = setTimeout(() => process.exit(0), HARD_TIMEOUT_MS);
 safety.unref();
@@ -27,7 +27,7 @@ process.stdin.on("end", async () => {
   const ac = new AbortController();
   const timeout = setTimeout(() => ac.abort(), HTTP_TIMEOUT_MS);
   try {
-    await fetch(URL, {
+    await fetch(ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body,

@@ -1,12 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { EmptyState } from "./components/empty-state.js";
+import { ThemePicker } from "./components/theme-picker.js";
 
 export function App() {
   return (
     <BrowserRouter>
       <div className="flex h-full w-full flex-col">
-        <header className="flex h-12 items-center border-border border-b px-4">
+        <header className="flex h-12 items-center justify-between border-border border-b px-4">
           <h1 className="font-semibold">Agent Zoo</h1>
+          <ThemePicker />
         </header>
         <main className="flex-1 overflow-hidden">
           <Routes>

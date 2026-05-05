@@ -6,9 +6,9 @@
     "rootDir": "./src",
     "noEmit": false,
     "emitDeclarationOnly": true,
-    "baseUrl": ".",
+    "tsBuildInfoFile": "./dist/tsconfig.app.tsbuildinfo",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "references": [{ "path": "../../packages/shared" }],

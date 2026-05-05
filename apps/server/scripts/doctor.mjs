@@ -76,8 +76,7 @@ async function main() {
         Array.isArray(arr) &&
         arr.some(
           (block) =>
-            Array.isArray(block?.hooks) &&
-            block.hooks.some((h) => h?.owner === HOOK_OWNER),
+            Array.isArray(block?.hooks) && block.hooks.some((h) => h?.owner === HOOK_OWNER),
         );
       if (!present) missing.push(event);
     }
@@ -113,7 +112,7 @@ async function main() {
     if (mismatches.length === 0) {
       ok("hook handler paths match current repo");
     } else {
-      fail(`hook handler path mismatches:`);
+      fail("hook handler path mismatches:");
       for (const m of mismatches) console.log(`    - ${m}`);
     }
   }
@@ -136,7 +135,7 @@ async function main() {
     if (foreign.length === 0) {
       ok("no foreign hook entries");
     } else {
-      warn(`foreign hook entries (left untouched):`);
+      warn("foreign hook entries (left untouched):");
       for (const line of foreign) console.log(`    - ${line}`);
     }
   }

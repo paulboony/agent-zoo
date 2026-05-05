@@ -40,9 +40,7 @@ async function main() {
         filtered.push(block);
         continue;
       }
-      const remainingHooks = block.hooks.filter(
-        (h) => h?.owner !== HOOK_OWNER,
-      );
+      const remainingHooks = block.hooks.filter((h) => h?.owner !== HOOK_OWNER);
       const removedCount = block.hooks.length - remainingHooks.length;
       if (removedCount > 0 && !removed.includes(event)) removed.push(event);
       if (remainingHooks.length === 0) continue;
@@ -56,6 +54,7 @@ async function main() {
     }
   }
 
+  // biome-ignore lint/performance/noDelete: removing the key prunes it from JSON output
   if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
 
   await atomicWrite(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);

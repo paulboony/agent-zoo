@@ -58,17 +58,13 @@ async function main() {
     const arr = settings.hooks[event];
 
     const ownedBlock = arr.find(
-      (block) =>
-        Array.isArray(block?.hooks) &&
-        block.hooks.some((h) => h?.owner === HOOK_OWNER),
+      (block) => Array.isArray(block?.hooks) && block.hooks.some((h) => h?.owner === HOOK_OWNER),
     );
 
     if (!ownedBlock) {
       arr.push({
         matcher: "",
-        hooks: [
-          { type: "command", command: handlerPath, owner: HOOK_OWNER },
-        ],
+        hooks: [{ type: "command", command: handlerPath, owner: HOOK_OWNER }],
       });
       added.push(event);
     } else {

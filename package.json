@@ -1,0 +1,31 @@
+{
+  "name": "agent-zoo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "setup": "pnpm install",
+    "dev": "turbo run dev --parallel",
+    "dev:hooks": "pnpm install-hooks && pnpm dev",
+    "build": "turbo run build",
+    "start": "node apps/server/dist/index.js",
+    "install-hooks": "node apps/server/scripts/install-hooks.mjs",
+    "uninstall-hooks": "node apps/server/scripts/uninstall-hooks.mjs",
+    "doctor": "node apps/server/scripts/doctor.mjs",
+    "seed": "node apps/server/scripts/seed.mjs",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@playwright/test": "^1.48.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

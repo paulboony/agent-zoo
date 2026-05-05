@@ -6,5 +6,6 @@ dist/
 playwright-report/
 test-results/
 .cache/
+*.tsbuildinfo
 .env
 .env.local

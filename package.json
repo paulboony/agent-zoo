@@ -15,6 +15,7 @@
     "doctor": "node apps/server/scripts/doctor.mjs",
     "seed": "node apps/server/scripts/seed.mjs",
     "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "turbo run typecheck",
     "test": "playwright test"

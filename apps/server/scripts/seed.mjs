@@ -17,11 +17,14 @@ async function post(payload) {
     received_at: new Date().toISOString(),
     payload,
   });
-  await fetch(ENDPOINT, {
+  const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body,
   });
+  if (!res.ok) {
+    throw new Error(`POST ${ENDPOINT} returned ${res.status}`);
+  }
 }
 
 async function demo() {
@@ -118,6 +121,10 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err.stack ?? String(err));
+  if (err?.cause?.code === "ECONNREFUSED" || err?.code === "ECONNREFUSED") {
+    console.error(`seed: server not reachable at ${ENDPOINT} — is apps/server running?`);
+  } else {
+    console.error(err.stack ?? String(err));
+  }
   process.exit(1);
 });

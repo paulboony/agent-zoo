@@ -1,22 +1,27 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { runBackfill } from "./backfill.js";
 import { logger } from "./logger.js";
 import { hookRoute } from "./routes/hook.js";
 import { snapshotRoutes } from "./routes/snapshot.js";
 import { streamRoute } from "./routes/stream.js";
 import { createStore } from "./state.js";
+import { startStaleSweep } from "./sweep.js";
 
 const HOST = process.env.HOST ?? "127.0.0.1";
 const PORT = Number(process.env.PORT ?? 7777);
 
 async function main(): Promise<void> {
   const store = createStore();
+  await runBackfill(store);
 
   const app = new Hono();
   app.get("/healthz", (c) => c.json({ ok: true }));
   app.route("/hook", hookRoute(store));
   app.route("/stream", streamRoute(store));
   app.route("/api", snapshotRoutes(store));
+
+  startStaleSweep(store);
 
   serve({ fetch: app.fetch, hostname: HOST, port: PORT }, (info) => {
     logger.info({ host: info.address, port: info.port }, "agent-zoo server listening");

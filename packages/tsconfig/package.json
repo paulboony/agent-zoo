@@ -1,0 +1,7 @@
+{
+  "name": "@agent-zoo/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["base.json", "server.json", "web.json"]
+}

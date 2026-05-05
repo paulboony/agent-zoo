@@ -2,7 +2,12 @@ import { logger } from "./logger.js";
 import { type Store, emit } from "./state.js";
 
 export function startStaleSweep(store: Store): NodeJS.Timeout {
-  const limitMin = Number(process.env.STALE_SESSION_MIN ?? 10);
+  const raw = process.env.STALE_SESSION_MIN;
+  const parsed = raw === undefined ? 10 : Number(raw);
+  const limitMin = Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+  if (raw !== undefined && limitMin !== parsed) {
+    logger.warn({ raw }, "invalid STALE_SESSION_MIN; falling back to 10");
+  }
   const limitMs = limitMin * 60_000;
 
   const handle = setInterval(() => {

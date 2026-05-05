@@ -92,6 +92,8 @@ function synthesise(entry: unknown): { timestamp: string; payload: HookPayload }
   if (!entry || typeof entry !== "object") return null;
   const e = entry as Record<string, unknown>;
 
+  if (typeof e.agentId === "string" || typeof e.agent_id === "string") return null;
+
   const sessionId =
     typeof e.sessionId === "string"
       ? e.sessionId
@@ -111,19 +113,6 @@ function synthesise(entry: unknown): { timestamp: string; payload: HookPayload }
 
   const type = typeof e.type === "string" ? e.type : undefined;
   const role = typeof e.role === "string" ? e.role : undefined;
-
-  if (type === "user" || role === "user") {
-    return {
-      timestamp: ts,
-      payload: {
-        hook_event_name: "UserPromptSubmit",
-        session_id: sessionId,
-        cwd,
-        transcript_path: transcriptPath,
-        prompt: "",
-      },
-    };
-  }
 
   if (type === "assistant" || role === "assistant") {
     return {

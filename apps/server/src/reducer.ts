@@ -150,6 +150,11 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       agent.status = "idle";
       agent.ended_at = session.last_event_at;
       break;
+
+    default: {
+      const _exhaustive: never = event;
+      void _exhaustive;
+    }
   }
 }
 

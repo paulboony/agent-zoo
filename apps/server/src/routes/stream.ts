@@ -28,7 +28,6 @@ export function streamRoute(store: Store): Hono {
       logger.info({ subs: store.subscribers.size }, "sse client connected");
 
       const heartbeat = setInterval(() => {
-        store.seq += 1;
         send({ type: "heartbeat", seq: store.seq }).catch(() => {});
       }, 15_000);
 

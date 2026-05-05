@@ -4,10 +4,16 @@ import { create } from "zustand";
 
 export type ConnectionState = "connecting" | "open" | "closed";
 
+export interface SessionTransition {
+  session: SessionState;
+  prevStatus: SessionState["status"] | null;
+}
+
 interface ClientState {
   sessions: Record<string, SessionState>;
   seq: number;
   connection: ConnectionState;
+  lastTransition: SessionTransition | null;
   applySnapshot: (seq: number, sessions: SessionState[]) => void;
   applyMessage: (msg: SseMessage) => void;
   setConnection: (c: ConnectionState) => void;
@@ -17,13 +23,14 @@ export const useStore = create<ClientState>((set) => ({
   sessions: {},
   seq: 0,
   connection: "connecting",
+  lastTransition: null,
 
   applySnapshot: (seq, sessions) =>
     set((state) => {
       if (seq <= state.seq) return state;
       const map: Record<string, SessionState> = {};
       for (const s of sessions) map[s.id] = s;
-      return { seq, sessions: map };
+      return { seq, sessions: map, lastTransition: null };
     }),
 
   applyMessage: (msg) =>
@@ -33,17 +40,20 @@ export const useStore = create<ClientState>((set) => ({
         case "snapshot": {
           const map: Record<string, SessionState> = {};
           for (const s of msg.sessions) map[s.id] = s;
-          return { seq: msg.seq, sessions: map };
+          return { seq: msg.seq, sessions: map, lastTransition: null };
         }
-        case "session_upsert":
+        case "session_upsert": {
+          const prev = state.sessions[msg.session.id]?.status ?? null;
           return {
             seq: msg.seq,
             sessions: { ...state.sessions, [msg.session.id]: msg.session },
+            lastTransition: { session: msg.session, prevStatus: prev },
           };
+        }
         case "session_remove": {
           const next = { ...state.sessions };
           delete next[msg.id];
-          return { seq: msg.seq, sessions: next };
+          return { seq: msg.seq, sessions: next, lastTransition: null };
         }
         case "heartbeat":
           return { seq: msg.seq };

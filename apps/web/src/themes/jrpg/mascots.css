@@ -1,0 +1,101 @@
+@keyframes jrpg-step {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes jrpg-step-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes jrpg-look {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes jrpg-tremble {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  64% {
+    transform: rotate(-2deg);
+  }
+  68% {
+    transform: rotate(2deg);
+  }
+  72% {
+    transform: rotate(-2deg);
+  }
+  76% {
+    transform: rotate(2deg);
+  }
+  80% {
+    transform: rotate(0);
+  }
+}
+
+.mascot svg {
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+.mascot[data-kind="main"] {
+  color: oklch(0.78 0.18 80);
+}
+.mascot[data-kind="code-reviewer"] {
+  color: oklch(0.7 0.18 220);
+}
+.mascot[data-kind="explorer"] {
+  color: oklch(0.72 0.2 145);
+}
+.mascot[data-kind="writer"] {
+  color: oklch(0.7 0.2 320);
+}
+.mascot[data-kind="general"] {
+  color: oklch(0.78 0.04 80);
+}
+
+.mascot[data-state="running"] .mascot-body {
+  animation: jrpg-step 0.5s infinite steps(2, end);
+  transform-origin: 50% 100%;
+}
+
+.mascot[data-state="waiting"] .mascot-eyes {
+  animation: jrpg-look 4s infinite;
+  transform-origin: 50% 50%;
+}
+
+.mascot[data-state="idle"] .mascot-body {
+  animation: jrpg-step-soft 2.4s infinite ease-in-out;
+}
+
+.mascot[data-state="error"] .mascot-body {
+  animation: jrpg-tremble 1.6s infinite ease-in-out;
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot * {
+    animation: none !important;
+  }
+}

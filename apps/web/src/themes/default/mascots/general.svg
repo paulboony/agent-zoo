@@ -1,21 +1,39 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
   <g class="mascot-body">
-    <rect x="30" y="20" width="40" height="10" fill="oklch(0.65 0.02 250)" />
-    <rect x="20" y="30" width="60" height="50" fill="oklch(0.65 0.02 250)" />
-    <rect x="30" y="80" width="40" height="10" fill="oklch(0.65 0.02 250)" />
-    <rect x="30" y="30" width="10" height="10" fill="var(--bg)" opacity="0.35" />
+    <rect x="32" y="20" width="4" height="10" fill="currentColor" />
+    <rect x="64" y="20" width="4" height="10" fill="currentColor" />
     <g class="mascot-eyes">
-      <rect x="35" y="45" width="10" height="10" fill="var(--bg)" />
-      <rect x="55" y="45" width="10" height="10" fill="var(--bg)" />
-      <rect x="38" y="48" width="4" height="4" fill="var(--fg)" />
-      <rect x="58" y="48" width="4" height="4" fill="var(--fg)" />
+      <rect x="26" y="10" width="14" height="12" fill="var(--bg)" />
+      <rect x="60" y="10" width="14" height="12" fill="var(--bg)" />
+      <rect x="30" y="14" width="6" height="6" fill="var(--fg)" />
+      <rect x="64" y="14" width="6" height="6" fill="var(--fg)" />
     </g>
+    <rect x="22" y="28" width="56" height="6" fill="currentColor" />
+    <rect x="14" y="34" width="72" height="20" fill="currentColor" />
+    <rect x="22" y="54" width="56" height="6" fill="currentColor" />
+    <rect x="20" y="36" width="6" height="4" fill="var(--bg)" opacity="0.4" />
+    <rect x="30" y="36" width="3" height="3" fill="var(--bg)" opacity="0.3" />
+    <rect x="42" y="48" width="14" height="2" fill="var(--fg)" opacity="0.5" />
+    <rect x="6" y="40" width="10" height="8" fill="currentColor" />
+    <rect x="0" y="34" width="12" height="6" fill="currentColor" />
+    <rect x="0" y="46" width="12" height="6" fill="currentColor" />
+    <rect x="84" y="40" width="10" height="8" fill="currentColor" />
+    <rect x="88" y="34" width="12" height="6" fill="currentColor" />
+    <rect x="88" y="46" width="12" height="6" fill="currentColor" />
+    <rect x="22" y="60" width="4" height="6" fill="currentColor" />
+    <rect x="20" y="64" width="4" height="6" fill="currentColor" />
+    <rect x="32" y="60" width="4" height="6" fill="currentColor" />
+    <rect x="30" y="64" width="4" height="4" fill="currentColor" />
+    <rect x="64" y="60" width="4" height="6" fill="currentColor" />
+    <rect x="66" y="64" width="4" height="4" fill="currentColor" />
+    <rect x="74" y="60" width="4" height="6" fill="currentColor" />
+    <rect x="76" y="64" width="4" height="6" fill="currentColor" />
   </g>
   <g class="mascot-accent">
-    <rect x="70" y="64" width="10" height="2" fill="var(--fg)" />
-    <rect x="78" y="66" width="2" height="6" fill="var(--fg)" />
-    <rect x="74" y="72" width="4" height="2" fill="var(--fg)" />
-    <rect x="74" y="76" width="2" height="2" fill="var(--fg)" />
-    <rect x="74" y="80" width="2" height="2" fill="var(--fg)" />
+    <rect x="44" y="68" width="8" height="2" fill="var(--fg)" />
+    <rect x="50" y="70" width="2" height="4" fill="var(--fg)" />
+    <rect x="46" y="74" width="4" height="2" fill="var(--fg)" />
+    <rect x="46" y="78" width="2" height="2" fill="var(--fg)" />
+    <rect x="46" y="82" width="2" height="2" fill="var(--fg)" />
   </g>
 </svg>

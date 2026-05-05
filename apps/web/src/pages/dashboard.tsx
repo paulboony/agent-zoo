@@ -3,17 +3,18 @@ import { SessionCard } from "@/components/session-card.js";
 import { SessionDetail } from "@/components/session-detail.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { fetchSnapshot, openStream } from "@/lib/api.js";
-import { selectSortedSessions, useStore } from "@/lib/store.js";
-import { useEffect } from "react";
+import { sortSessions, useStore } from "@/lib/store.js";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 export function Dashboard() {
   const params = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const sessions = useStore(selectSortedSessions);
+  const sessionsMap = useStore((s) => s.sessions);
   const connection = useStore((s) => s.connection);
   const selectedId = params.id ?? null;
-  const selected = useStore((s) => (selectedId ? s.sessions[selectedId] : null));
+  const selected = useStore((s) => (selectedId ? (s.sessions[selectedId] ?? null) : null));
+  const sessions = useMemo(() => sortSessions(sessionsMap), [sessionsMap]);
 
   useEffect(() => {
     fetchSnapshot().catch((err) => console.warn("snapshot failed", err));

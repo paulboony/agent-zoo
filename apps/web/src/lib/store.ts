@@ -56,8 +56,8 @@ export const useStore = create<ClientState>((set) => ({
   selectSession: (id) => set({ selectedSessionId: id }),
 }));
 
-export function selectSortedSessions(state: ClientState): SessionState[] {
-  return Object.values(state.sessions).sort((a, b) => {
+export function sortSessions(sessions: Record<string, SessionState>): SessionState[] {
+  return Object.values(sessions).sort((a, b) => {
     const ua = statusUrgency(a.status);
     const ub = statusUrgency(b.status);
     if (ua !== ub) return ub - ua;

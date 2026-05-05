@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root,
+:root[data-theme="default"] {
+  --bg: oklch(0.99 0 0);
+  --fg: oklch(0.15 0 0);
+  --muted: oklch(0.92 0 0);
+  --accent: oklch(0.65 0.2 250);
+  --accent-2: oklch(0.55 0.18 280);
+  --status-running: oklch(0.7 0.15 140);
+  --status-waiting: oklch(0.75 0.18 60);
+  --status-idle: oklch(0.7 0.02 250);
+  --status-error: oklch(0.6 0.22 25);
+  --status-ended: oklch(0.6 0.02 250);
+  --border: oklch(0.88 0 0);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-status-running: var(--status-running);
+  --color-status-waiting: var(--status-waiting);
+  --color-status-idle: var(--status-idle);
+  --color-status-error: var(--status-error);
+  --color-status-ended: var(--status-ended);
+  --color-border: var(--border);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

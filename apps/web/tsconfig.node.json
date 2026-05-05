@@ -1,0 +1,16 @@
+{
+  "extends": "@agent-zoo/tsconfig/base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "./dist/node",
+    "tsBuildInfoFile": "./dist/node/tsconfig.node.tsbuildinfo",
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts"]
+}

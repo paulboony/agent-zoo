@@ -11,7 +11,7 @@ export function ThemePicker() {
   const { active, available, setThemeId } = useThemeControls();
   return (
     <Select value={active.id} onValueChange={setThemeId}>
-      <SelectTrigger className="w-[160px]" data-testid="theme-picker" aria-label="Select theme">
+      <SelectTrigger className="w-40" data-testid="theme-picker" aria-label="Select theme">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

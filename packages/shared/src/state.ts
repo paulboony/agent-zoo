@@ -13,6 +13,7 @@ export interface AgentState {
   current_tool_input_summary?: string;
   last_tool?: string;
   last_tool_input_summary?: string;
+  model?: string;
   started_at: string;
   last_event_at: string;
   ended_at?: string;

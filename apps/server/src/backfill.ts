@@ -87,6 +87,12 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
     };
     reduce(store, env);
     touchedSessionIds.add(synth.payload.session_id);
+    const model = extractModel(entry);
+    if (model) {
+      const session = store.sessions.get(synth.payload.session_id);
+      const main = session?.agents.main;
+      if (main) main.model = model;
+    }
   }
 
   // Bump last_event_at on every touched session to the file's mtime when newer.
@@ -142,4 +148,13 @@ function synthesise(entry: unknown): { timestamp: string; payload: HookPayload }
   }
 
   return null;
+}
+
+function extractModel(entry: unknown): string | undefined {
+  if (!entry || typeof entry !== "object") return undefined;
+  const e = entry as Record<string, unknown>;
+  const message = e.message;
+  if (!message || typeof message !== "object") return undefined;
+  const m = (message as Record<string, unknown>).model;
+  return typeof m === "string" && m.length > 0 ? m : undefined;
 }

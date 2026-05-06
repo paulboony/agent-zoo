@@ -49,6 +49,9 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
           {showSummary ? `: ${showSummary}` : ""}
         </span>
       )}
+      {agent.model && (
+        <span className="max-w-40 truncate font-mono text-fg/60 text-xs">{agent.model}</span>
+      )}
       <span className="text-fg/50 text-xs">
         {formatStarted(agent.started_at)} · {durationLabel(agent)}
       </span>

@@ -13,10 +13,24 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar.js";
+import { Skeleton } from "@/components/ui/skeleton.js";
 import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
+function SessionCardSkeleton() {
+  return (
+    <div className="flex w-full items-center gap-3 rounded-md border border-border bg-card p-3">
+      <Skeleton className="size-11 shrink-0 rounded" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <Skeleton className="h-3.5 w-2/3" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-1/2" />
+      </div>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const params = useParams<{ id?: string }>();
@@ -44,7 +58,13 @@ export function Dashboard() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="gap-2 p-2">
-            {sessions.length === 0 ? (
+            {sessions.length === 0 && connection !== "open" ? (
+              <>
+                <SessionCardSkeleton />
+                <SessionCardSkeleton />
+                <SessionCardSkeleton />
+              </>
+            ) : sessions.length === 0 ? (
               <p className="p-4 text-center text-sidebar-foreground/50 text-xs">No sessions yet.</p>
             ) : (
               sessions.map((s) => (

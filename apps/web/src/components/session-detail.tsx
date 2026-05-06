@@ -1,4 +1,7 @@
+import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
+import { Separator } from "@/components/ui/separator.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
@@ -36,13 +39,18 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
 
   return (
-    <div className="flex min-w-40 flex-col items-center gap-1.5 rounded-md border border-border bg-card p-3">
+    <Card className="min-w-40 items-center gap-1.5 rounded-md p-3">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">{agent.kind}</span>
         <StatusBadge status={agent.status} />
       </div>
-      <span className="max-w-32 truncate text-fg/50 text-xs">{agent.id}</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="max-w-32 truncate text-fg/50 text-xs">{agent.id}</span>
+        </TooltipTrigger>
+        <TooltipContent className="break-all">{agent.id}</TooltipContent>
+      </Tooltip>
       {toolLabel && (
         <span className="max-w-40 truncate text-fg/70 text-xs">
           {toolLabel}
@@ -59,7 +67,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
         {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
       </span>
-    </div>
+    </Card>
   );
 }
 
@@ -107,7 +115,7 @@ export function SessionDetail({ session }: { session: SessionState }) {
   const agents = Object.values(session.agents);
   return (
     <div className="flex h-full flex-col">
-      <div className="border-border border-b p-4">
+      <div className="p-4">
         <h2 className="font-semibold text-lg">{session.cwd_basename}</h2>
         <p className="text-fg/60 text-xs">{session.cwd}</p>
         <div className="mt-2 flex items-center gap-2">
@@ -117,6 +125,7 @@ export function SessionDetail({ session }: { session: SessionState }) {
           )}
         </div>
       </div>
+      <Separator />
       <ScrollArea className="flex-1 px-4 pb-6">
         <h3 className="mt-4 font-medium text-sm">Agents</h3>
         <AgentTree agents={agents} />

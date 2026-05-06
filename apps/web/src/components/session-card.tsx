@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { cn } from "@/lib/cn.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
@@ -54,9 +55,16 @@ export function SessionCard({ session, selected, onSelect }: Props) {
             <StatusBadge status={session.status} />
           </span>
         </div>
-        <span className="truncate text-fg/60 text-xs">
-          {session.cwd} · {elapsed(session.started_at)}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate text-fg/60 text-xs">
+              {session.cwd} · {elapsed(session.started_at)}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-md break-all">
+            {session.cwd}
+          </TooltipContent>
+        </Tooltip>
         {session.current_activity && (
           <span className="truncate text-fg/80 text-xs">{session.current_activity}</span>
         )}

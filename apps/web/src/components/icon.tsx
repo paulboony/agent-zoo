@@ -7,7 +7,7 @@ interface Props {
 
 export function Icon({ name, className }: Props) {
   return (
-    <span aria-hidden="true" className={cn("material-symbols-outlined text-[1em]", className)}>
+    <span aria-hidden="true" className={cn("material-symbols-outlined text-[0.85em]", className)}>
       {name}
     </span>
   );

@@ -1,7 +1,18 @@
 import { EmptyState } from "@/components/empty-state.js";
+import { NotificationToggle } from "@/components/notification-toggle.js";
 import { SessionCard } from "@/components/session-card.js";
 import { SessionDetail } from "@/components/session-detail.js";
-import { ScrollArea } from "@/components/ui/scroll-area.js";
+import { ThemePicker } from "@/components/theme-picker.js";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar.js";
 import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
 import { useEffect, useMemo } from "react";
@@ -23,36 +34,51 @@ export function Dashboard() {
   }, []);
 
   return (
-    <div className="flex h-full">
-      <aside className="flex w-72 shrink-0 flex-col border-border border-r lg:w-80">
-        <div className="flex h-10 items-center justify-between border-border border-b px-3 text-fg/70 text-xs">
-          <span>Sessions ({sessions.length})</span>
-          <span data-testid="connection-state">{connection}</span>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-2 p-2">
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center justify-between px-2 py-1 text-sidebar-foreground/70 text-xs">
+            <span>Sessions ({sessions.length})</span>
+            <span data-testid="connection-state">{connection}</span>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu className="gap-2 p-2">
             {sessions.length === 0 ? (
-              <p className="p-4 text-center text-fg/50 text-xs">No sessions yet.</p>
+              <p className="p-4 text-center text-sidebar-foreground/50 text-xs">No sessions yet.</p>
             ) : (
               sessions.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  selected={s.id === selectedId}
-                  onSelect={() => navigate(`/sessions/${s.id}`)}
-                />
+                <SidebarMenuItem key={s.id}>
+                  <SessionCard
+                    session={s}
+                    selected={s.id === selectedId}
+                    onSelect={() => navigate(`/sessions/${s.id}`)}
+                  />
+                </SidebarMenuItem>
               ))
             )}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-border border-b px-4">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <h1 className="font-semibold">Agent Zoo</h1>
           </div>
-        </ScrollArea>
-      </aside>
-      <section className="flex-1">
-        {selected ? (
-          <SessionDetail session={selected} />
-        ) : (
-          <EmptyState message="Select a session on the left." />
-        )}
-      </section>
-    </div>
+          <div className="flex items-center gap-3">
+            <NotificationToggle />
+            <ThemePicker />
+          </div>
+        </header>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {selected ? (
+            <SessionDetail session={selected} />
+          ) : (
+            <EmptyState message="Select a session on the left." />
+          )}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

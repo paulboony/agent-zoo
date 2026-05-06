@@ -24,7 +24,7 @@ export function Dashboard() {
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-80 shrink-0 flex-col border-border border-r">
+      <aside className="flex w-72 shrink-0 flex-col border-border border-r lg:w-80">
         <div className="flex h-10 items-center justify-between border-border border-b px-3 text-fg/70 text-xs">
           <span>Sessions ({sessions.length})</span>
           <span data-testid="connection-state">{connection}</span>

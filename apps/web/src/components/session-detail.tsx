@@ -38,7 +38,7 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
       {subs.length > 0 && (
         <>
           <div className="h-6 w-px bg-border" />
-          <div className="flex justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-6">
             {subs.map((s, i) => {
               const showLeft = i > 0;
               const showRight = i < subs.length - 1;

@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card.js";
 import { cn } from "@/lib/cn.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
@@ -35,20 +34,25 @@ export function SessionCard({ session, selected, onSelect }: Props) {
   const heroState = statusToMascotState(session.status);
 
   return (
-    <Card
+    <button
+      type="button"
       data-testid={`session-card-${session.id}`}
       data-status={session.status}
       onClick={onSelect}
       className={cn(
-        "flex cursor-pointer gap-3 p-3 transition-colors",
+        "flex w-full cursor-pointer items-center gap-3 rounded-md border bg-card p-3 text-left text-card-foreground shadow-sm transition-colors hover:bg-card/80",
         selected ? "border-accent" : "border-border",
       )}
     >
-      <Mascot kind={heroKind} state={heroState} size={56} />
+      <Mascot kind={heroKind} state={heroState} size={44} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <span className="truncate font-medium text-sm">{session.cwd_basename}</span>
-          <StatusBadge status={session.status} />
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate font-medium text-sm">
+            {session.cwd_basename}
+          </span>
+          <span className="shrink-0">
+            <StatusBadge status={session.status} />
+          </span>
         </div>
         <span className="truncate text-fg/60 text-xs">
           {session.cwd} · {elapsed(session.started_at)}
@@ -60,6 +64,6 @@ export function SessionCard({ session, selected, onSelect }: Props) {
           <span className="truncate text-status-waiting text-xs">{session.waiting_reason}</span>
         )}
       </div>
-    </Card>
+    </button>
   );
 }

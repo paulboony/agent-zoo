@@ -27,7 +27,7 @@ export async function runBackfill(store: Store): Promise<void> {
   }
 
   const cutoff = Date.now() - TWENTY_FOUR_HOURS_MS;
-  const jsonlFiles: string[] = [];
+  const jsonlFiles: { path: string; mtimeMs: number }[] = [];
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
     const parent =
@@ -37,15 +37,15 @@ export async function runBackfill(store: Store): Promise<void> {
     const fullPath = path.join(parent, entry.name);
     try {
       const stat = await fs.stat(fullPath);
-      if (stat.mtimeMs >= cutoff) jsonlFiles.push(fullPath);
+      if (stat.mtimeMs >= cutoff) jsonlFiles.push({ path: fullPath, mtimeMs: stat.mtimeMs });
     } catch {
       // ignore unreadable files
     }
   }
 
-  for (const file of jsonlFiles) {
+  for (const { path: file, mtimeMs } of jsonlFiles) {
     try {
-      await replayJsonl(store, file);
+      await replayJsonl(store, file, mtimeMs);
     } catch (err) {
       logger.error({ err: String(err), file }, "jsonl backfill failed");
     }
@@ -66,10 +66,11 @@ export async function runBackfill(store: Store): Promise<void> {
   logger.info({ files: jsonlFiles.length, sessions: store.sessions.size }, "backfill complete");
 }
 
-async function replayJsonl(store: Store, file: string): Promise<void> {
+async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Promise<void> {
   const content = await fs.readFile(file, "utf8");
   const lines = content.split("\n").filter((l) => l.trim().length > 0);
   const tail = lines.slice(-TAIL_LINES);
+  const touchedSessionIds = new Set<string>();
 
   for (const line of tail) {
     let entry: unknown;
@@ -85,6 +86,20 @@ async function replayJsonl(store: Store, file: string): Promise<void> {
       payload: synth.payload,
     };
     reduce(store, env);
+    touchedSessionIds.add(synth.payload.session_id);
+  }
+
+  // Bump last_event_at on every touched session to the file's mtime when newer.
+  // The JSONL is written for tool calls and tool results too — events we
+  // intentionally skip during synthesis but which still indicate liveness.
+  const fileMtimeIso = new Date(fileMtimeMs).toISOString();
+  for (const sessionId of touchedSessionIds) {
+    const session = store.sessions.get(sessionId);
+    if (!session) continue;
+    const current = Date.parse(session.last_event_at);
+    if (Number.isNaN(current) || current < fileMtimeMs) {
+      session.last_event_at = fileMtimeIso;
+    }
   }
 }
 

@@ -167,7 +167,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       break;
 
     case "SubagentStop":
-      agent.status = "idle";
+      agent.status = "ended";
       agent.ended_at = session.last_event_at;
       break;
 

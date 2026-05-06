@@ -51,16 +51,16 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       )}
       <div className="flex flex-wrap justify-center gap-1">
         {agent.model && (
-          <Badge variant="outline" className="max-w-40 gap-1 font-mono">
+          <Badge variant="outline" className="max-w-40 gap-1 px-1.5 py-0 font-mono text-[10px]">
             <Icon name="memory" />
             <span className="truncate">{agent.model}</span>
           </Badge>
         )}
-        <Badge variant="outline" className="gap-1">
+        <Badge variant="outline" className="gap-1 px-1.5 py-0 text-[10px]">
           <Icon name="schedule" />
           {timeAgo(agent.last_event_at)}
         </Badge>
-        <Badge variant="outline">
+        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
           {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
           {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
         </Badge>

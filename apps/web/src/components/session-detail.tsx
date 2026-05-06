@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
-import { Clock, Cpu, Terminal } from "lucide-react";
+import { Clock, Code, Cpu } from "lucide-react";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -31,7 +31,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
 
   return (
-    <Card className="min-w-40 max-w-[360px] items-center gap-1.5 rounded-md p-3">
+    <Card className="min-w-40 max-w-90 items-center gap-1.5 rounded-md p-3">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">{agent.agent_type_raw ?? agent.kind}</span>
@@ -46,7 +46,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       <div className="flex flex-wrap justify-center gap-1">
         {toolLabel && (
           <Badge variant="outline" className="max-w-48">
-            <Terminal />
+            <Code />
             <span className="truncate">
               {toolLabel}
               {showSummary ? `: ${showSummary}` : ""}

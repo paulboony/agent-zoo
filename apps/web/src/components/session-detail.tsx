@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge.js";
 import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
@@ -48,20 +49,22 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
           {showSummary ? `: ${showSummary}` : ""}
         </span>
       )}
-      {agent.model && (
-        <span className="inline-flex max-w-40 items-center gap-1 truncate font-mono text-fg/60 text-xs">
-          <Icon name="memory" />
-          <span className="truncate">{agent.model}</span>
-        </span>
-      )}
-      <span className="inline-flex items-center gap-1 text-fg/50 text-xs">
-        <Icon name="schedule" />
-        {timeAgo(agent.last_event_at)}
-      </span>
-      <span className="text-fg/50 text-xs">
-        {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
-        {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
-      </span>
+      <div className="flex flex-wrap justify-center gap-1">
+        {agent.model && (
+          <Badge variant="outline" className="max-w-40 gap-1 font-mono">
+            <Icon name="memory" />
+            <span className="truncate">{agent.model}</span>
+          </Badge>
+        )}
+        <Badge variant="outline" className="gap-1">
+          <Icon name="schedule" />
+          {timeAgo(agent.last_event_at)}
+        </Badge>
+        <Badge variant="outline">
+          {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
+          {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
+        </Badge>
+      </div>
     </Card>
   );
 }

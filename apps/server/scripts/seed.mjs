@@ -72,6 +72,19 @@ async function demo() {
 
   await sleep(150);
 
+  // Alpha also spawns an explorer sub-agent (this one stays active)
+  await post({
+    hook_event_name: "SubagentStart",
+    session_id: "seed-alpha",
+    cwd: "/Users/demo/projects/alpha",
+    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
+    agent_id: "alpha-explorer-1",
+    agent_type: "Explore",
+    agent_transcript_path: "/Users/demo/.claude/projects/alpha-explorer.jsonl",
+  });
+
+  await sleep(150);
+
   // Beta hits a permission prompt
   await post({
     hook_event_name: "PermissionRequest",

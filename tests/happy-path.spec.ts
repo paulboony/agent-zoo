@@ -22,10 +22,19 @@ test.describe("agent-zoo happy path", () => {
     await alphaCard.click();
     await expect(page).toHaveURL(/\/sessions\/seed-alpha$/);
 
+    // alpha-explorer-1 stays active and is visible by default
+    await expect(page.getByText("alpha-explorer-1")).toBeVisible();
+
     // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
     // reveal it via the toggle before asserting visibility.
     await page.getByRole("button", { name: /show ended/i }).click();
     await expect(page.getByText("alpha-reviewer-1")).toBeVisible();
+
+    // capture full-page screenshot for visual review (gitignored under test-results/)
+    await page.screenshot({
+      path: "test-results/session-detail-with-subs.png",
+      fullPage: true,
+    });
 
     // alpha status is running
     await expect(alphaCard.locator('[data-testid="status-running"]')).toBeVisible();

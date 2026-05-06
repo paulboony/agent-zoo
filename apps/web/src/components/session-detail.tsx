@@ -3,21 +3,59 @@ import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
+}
+
+function formatStarted(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function durationLabel(agent: AgentState): string {
+  const startedAt = Date.parse(agent.started_at);
+  if (Number.isNaN(startedAt)) return "";
+  const endedAt = agent.ended_at ? Date.parse(agent.ended_at) : Date.now();
+  const verb = agent.ended_at ? "ran" : "active";
+  return `${verb} ${formatDuration(endedAt - startedAt)}`;
+}
+
 function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
+  const showTool = agent.current_tool ?? agent.last_tool;
+  const showSummary = agent.current_tool
+    ? agent.current_tool_input_summary
+    : agent.last_tool_input_summary;
+  const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
+
   return (
-    <div className="flex min-w-32 flex-col items-center gap-2 rounded-md border border-border bg-card p-3">
+    <div className="flex min-w-40 flex-col items-center gap-1.5 rounded-md border border-border bg-card p-3">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">{agent.kind}</span>
         <StatusBadge status={agent.status} />
       </div>
       <span className="max-w-32 truncate text-fg/50 text-xs">{agent.id}</span>
-      {agent.current_tool && (
+      {toolLabel && (
         <span className="max-w-40 truncate text-fg/70 text-xs">
-          {agent.current_tool}
-          {agent.current_tool_input_summary ? `: ${agent.current_tool_input_summary}` : ""}
+          {toolLabel}
+          {showSummary ? `: ${showSummary}` : ""}
         </span>
       )}
+      <span className="text-fg/50 text-xs">
+        {formatStarted(agent.started_at)} · {durationLabel(agent)}
+      </span>
+      <span className="text-fg/50 text-xs">
+        {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
+        {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
+      </span>
     </div>
   );
 }

@@ -29,11 +29,15 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
       ...(agentTypeRaw !== undefined ? { agent_type_raw: agentTypeRaw } : {}),
       status: "running",
       started_at: received_at,
+      last_event_at: received_at,
+      tool_calls_count: 0,
+      error_count: 0,
     };
   } else {
     agent = { ...existingAgent };
   }
 
+  agent.last_event_at = received_at;
   applyTransition(agent, session, payload);
   session.agents[agentId] = agent;
 
@@ -86,8 +90,13 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       break;
 
     case "PostToolUseFailure":
+      agent.status = "error";
+      agent.error_count += 1;
+      break;
+
     case "StopFailure":
       agent.status = "error";
+      agent.error_count += 1;
       break;
 
     case "Notification": {
@@ -118,6 +127,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
     case "PreToolUse": {
       agent.status = "running";
       agent.current_tool = payload.tool_name;
+      agent.tool_calls_count += 1;
       const summary = summariseToolInput(payload.tool_name, payload.tool_input);
       if (summary !== undefined) {
         agent.current_tool_input_summary = summary;
@@ -129,7 +139,16 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       break;
     }
 
-    case "PostToolUse":
+    case "PostToolUse": {
+      if (agent.current_tool !== undefined) {
+        agent.last_tool = agent.current_tool;
+      }
+      if (agent.current_tool_input_summary !== undefined) {
+        agent.last_tool_input_summary = agent.current_tool_input_summary;
+      } else {
+        // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
+        delete agent.last_tool_input_summary;
+      }
       // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
       delete agent.current_tool;
       // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
@@ -137,6 +156,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
       delete session.current_activity;
       break;
+    }
 
     case "Stop":
       agent.status = "idle";

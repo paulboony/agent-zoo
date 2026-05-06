@@ -11,8 +11,13 @@ export interface AgentState {
   status: AgentStatus;
   current_tool?: string;
   current_tool_input_summary?: string;
+  last_tool?: string;
+  last_tool_input_summary?: string;
   started_at: string;
+  last_event_at: string;
   ended_at?: string;
+  tool_calls_count: number;
+  error_count: number;
 }
 
 export interface SessionState {

@@ -53,7 +53,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
                 <span className="truncate">{toolText}</span>
               </Badge>
             </TooltipTrigger>
-            <TooltipContent className="max-w-md break-all">{toolText}</TooltipContent>
+            <TooltipContent className="break-all">{toolText}</TooltipContent>
           </Tooltip>
         )}
         {agent.model && (

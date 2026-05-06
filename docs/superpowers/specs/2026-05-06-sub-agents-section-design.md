@@ -41,6 +41,16 @@ A shadcn `Button` (variant=`ghost`, size=`sm`) labelled `Show ended (N)`
 appears in the section header when `ended.length > 0`. Clicking toggles to
 `Hide ended` and the ended cards become visible.
 
+**Reducer alignment (one-line fix):** the current reducer sets a sub-agent's
+`status` to `"idle"` on `SubagentStop`, but also sets `ended_at`. Update
+`apps/server/src/reducer.ts` so the `SubagentStop` arm sets `status = "ended"`
+(was `"idle"`). This aligns terminology with `SessionEnd` (which already sets
+`"ended"`) and makes the UI filter `status === "ended"` unambiguous.
+
+The session rollup (`rollupSessionStatus`) is unaffected: `ended` (rank 0)
+ranks below `idle` (rank 1), so a session with one ended sub-agent and one
+running main still rolls up to `running`. No visible change at session level.
+
 ### D4 — Revealed ended cards are dimmed
 
 When the toggle is on, ended cards render with `opacity-50` (no other style
@@ -76,22 +86,36 @@ lives in `useState<boolean>` inside the component; no store changes.
 
 ## 5. Implementation outline
 
-Single file: `apps/web/src/components/session-detail.tsx`.
+Three files — one in server, two in web/tests.
 
+**Server reducer** (`apps/server/src/reducer.ts`):
+1. In the `SubagentStop` case, change `agent.status = "idle"` to
+   `agent.status = "ended"`. `agent.ended_at = session.last_event_at` stays
+   as-is.
+
+**Web component** (`apps/web/src/components/session-detail.tsx`):
 1. Drop the connector-line markup from `AgentTree` (the trunk div, the per-sub
    `relative h-6 w-full` wrapper, the absolute half-line/v-line divs).
 2. Replace it with `<SubAgentSection subs={subs} />`.
 3. Add `SubAgentSection` (local function component):
    - Imports needed: `useState` from `react`; `Button` from `@/components/ui/button.js`;
      `statusUrgency` from `@agent-zoo/shared`.
-   - Splits subs into active/ended.
+   - Splits subs into active/ended via `s.status === "ended"`.
    - Sorts each group per D5.
    - Renders header + grid as in §4.
 4. No styling changes to `AgentNode` itself.
 
+**Playwright test** (`tests/happy-path.spec.ts`):
+1. Before the existing `expect(page.getByText("alpha-reviewer-1")).toBeVisible()`,
+   click the `Show ended` button. Use a `getByRole("button", { name: /show ended/i })`
+   selector.
+
 ## 6. Files & dependencies
 
-- **Modify:** `apps/web/src/components/session-detail.tsx`
+- **Modify:** `apps/web/src/components/session-detail.tsx` (UI refactor).
+- **Modify:** `apps/server/src/reducer.ts` (one-line: `SubagentStop` →
+  `status = "ended"`).
+- **Modify:** `tests/happy-path.spec.ts` (Playwright assertion update — see §8).
 - **No new files.**
 - **No new dependencies.**
 - **No CSS changes** beyond Tailwind class swaps in the same file.
@@ -108,15 +132,16 @@ Single file: `apps/web/src/components/session-detail.tsx`.
 
 ## 8. Verification
 
-- **Playwright happy-path** (`tests/happy-path.spec.ts`) currently asserts
-  that selecting `seed-alpha` shows the text `alpha-reviewer-1` in the detail
-  pane. The new layout still renders that sub-agent card by default
-  (`alpha-reviewer-1` is `idle`, not `ended`, after the seed scenario), so the
-  test continues to pass without modification.
+- **Playwright happy-path** (`tests/happy-path.spec.ts`) needs an update:
+  after the reducer change in D3, `alpha-reviewer-1` ends with `status = "ended"`
+  (not `"idle"`), so it's hidden by default. The test must click the
+  `Show ended (1)` toggle before asserting `alpha-reviewer-1` is visible.
+  One added click; same selectors otherwise.
 - **Manual smoke**: resize the browser between ~600px and ~1500px while
   viewing a session with multiple sub-agents; cards should wrap cleanly. No
   connector lines means nothing to break.
-- **Lint/typecheck/build** must remain green: `pnpm lint`,
+- **Lint/typecheck/build** must remain green across server and web:
+  `pnpm lint`, `pnpm --filter @agent-zoo/server typecheck`,
   `pnpm --filter @agent-zoo/web typecheck`, `pnpm --filter @agent-zoo/web build`.
 
 ## 9. Out of scope

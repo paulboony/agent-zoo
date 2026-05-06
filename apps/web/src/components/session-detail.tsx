@@ -29,6 +29,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
     ? agent.current_tool_input_summary
     : agent.last_tool_input_summary;
   const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
+  const toolText = toolLabel ? `${toolLabel}${showSummary ? `: ${showSummary}` : ""}` : "";
 
   return (
     <Card className="min-w-40 max-w-90 items-center gap-1.5 rounded-md p-3">
@@ -45,13 +46,15 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       </Tooltip>
       <div className="flex flex-wrap justify-center gap-1">
         {toolLabel && (
-          <Badge variant="outline" className="max-w-48">
-            <Code />
-            <span className="truncate">
-              {toolLabel}
-              {showSummary ? `: ${showSummary}` : ""}
-            </span>
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="max-w-48">
+                <Code />
+                <span className="truncate">{toolText}</span>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md break-all">{toolText}</TooltipContent>
+          </Tooltip>
         )}
         {agent.model && (
           <Badge variant="outline" className="max-w-40 font-mono">

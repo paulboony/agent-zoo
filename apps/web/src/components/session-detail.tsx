@@ -31,7 +31,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
 
   return (
-    <Card className="min-w-40 items-center gap-1.5 rounded-md p-3">
+    <Card className="min-w-40 max-w-[360px] items-center gap-1.5 rounded-md p-3">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">{agent.agent_type_raw ?? agent.kind}</span>

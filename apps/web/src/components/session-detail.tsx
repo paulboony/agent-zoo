@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
-import { Clock, Cpu } from "lucide-react";
+import { Clock, Cpu, Terminal } from "lucide-react";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -43,13 +43,16 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         </TooltipTrigger>
         <TooltipContent className="break-all">{agent.id}</TooltipContent>
       </Tooltip>
-      {toolLabel && (
-        <span className="max-w-40 truncate text-fg/70 text-xs">
-          {toolLabel}
-          {showSummary ? `: ${showSummary}` : ""}
-        </span>
-      )}
       <div className="flex flex-wrap justify-center gap-1">
+        {toolLabel && (
+          <Badge variant="outline" className="max-w-48">
+            <Terminal />
+            <span className="truncate">
+              {toolLabel}
+              {showSummary ? `: ${showSummary}` : ""}
+            </span>
+          </Badge>
+        )}
         {agent.model && (
           <Badge variant="outline" className="max-w-40 font-mono">
             <Cpu />

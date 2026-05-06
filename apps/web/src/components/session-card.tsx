@@ -65,6 +65,14 @@ export function SessionCard({ session, selected, onSelect }: Props) {
             {session.cwd}
           </TooltipContent>
         </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate font-mono text-fg/45 text-xs">{session.id.slice(0, 8)}</span>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="break-all">
+            {session.id}
+          </TooltipContent>
+        </Tooltip>
         {session.current_activity && (
           <span className="truncate text-fg/80 text-xs">{session.current_activity}</span>
         )}

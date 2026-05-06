@@ -3,32 +3,23 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
+import { Icon } from "./icon.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
-function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "";
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  const remM = m % 60;
-  return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
-}
-
-function formatStarted(iso: string): string {
+function timeAgo(iso: string): string {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "";
-  return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function durationLabel(agent: AgentState): string {
-  const startedAt = Date.parse(agent.started_at);
-  if (Number.isNaN(startedAt)) return "";
-  const endedAt = agent.ended_at ? Date.parse(agent.ended_at) : Date.now();
-  const verb = agent.ended_at ? "ran" : "active";
-  return `${verb} ${formatDuration(endedAt - startedAt)}`;
+  const ms = Date.now() - t;
+  if (ms < 0 || ms < 5000) return "just now";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
 function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
@@ -58,10 +49,14 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         </span>
       )}
       {agent.model && (
-        <span className="max-w-40 truncate font-mono text-fg/60 text-xs">{agent.model}</span>
+        <span className="inline-flex max-w-40 items-center gap-1 truncate font-mono text-fg/60 text-xs">
+          <Icon name="memory" />
+          <span className="truncate">{agent.model}</span>
+        </span>
       )}
-      <span className="text-fg/50 text-xs">
-        {formatStarted(agent.started_at)} · {durationLabel(agent)}
+      <span className="inline-flex items-center gap-1 text-fg/50 text-xs">
+        <Icon name="schedule" />
+        {timeAgo(agent.last_event_at)}
       </span>
       <span className="text-fg/50 text-xs">
         {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}

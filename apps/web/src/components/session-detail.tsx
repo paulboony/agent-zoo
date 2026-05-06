@@ -1,10 +1,13 @@
 import { Badge } from "@/components/ui/badge.js";
+import { Button } from "@/components/ui/button.js";
 import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
+import { statusUrgency } from "@agent-zoo/shared";
 import { Clock, Code, Cpu } from "lucide-react";
+import { useState } from "react";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -75,6 +78,51 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   );
 }
 
+function SubAgentSection({ subs }: { subs: AgentState[] }) {
+  const [showEnded, setShowEnded] = useState(false);
+
+  const active = subs
+    .filter((s) => s.status !== "ended")
+    .sort((a, b) => {
+      const ua = statusUrgency(a.status);
+      const ub = statusUrgency(b.status);
+      if (ua !== ub) return ub - ua;
+      return Date.parse(b.last_event_at) - Date.parse(a.last_event_at);
+    });
+
+  const ended = subs
+    .filter((s) => s.status === "ended")
+    .sort((a, b) => {
+      const aTs = a.ended_at ?? a.last_event_at;
+      const bTs = b.ended_at ?? b.last_event_at;
+      return Date.parse(bTs) - Date.parse(aTs);
+    });
+
+  return (
+    <div className="mt-6 w-full">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-medium text-sm">Sub-agents ({active.length})</h3>
+        {ended.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={() => setShowEnded((v) => !v)}>
+            {showEnded ? "Hide ended" : `Show ended (${ended.length})`}
+          </Button>
+        )}
+      </div>
+      <div className="flex flex-wrap justify-center gap-3">
+        {active.map((s) => (
+          <AgentNode key={s.id} agent={s} size={48} />
+        ))}
+        {showEnded &&
+          ended.map((s) => (
+            <div key={s.id} className="opacity-50">
+              <AgentNode agent={s} size={48} />
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
 function AgentTree({ agents }: { agents: AgentState[] }) {
   if (agents.length === 0) {
     return <p className="text-fg/50 text-xs">No agents reported yet.</p>;
@@ -86,31 +134,9 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
   const subs = agents.filter((a) => a !== main);
 
   return (
-    <div className="flex flex-col items-center gap-0 pt-4">
+    <div className="flex flex-col items-center pt-4">
       <AgentNode agent={main} size={64} />
-      {subs.length > 0 && (
-        <>
-          <div className="h-6 w-px bg-border" />
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-6">
-            {subs.map((s, i) => {
-              const showLeft = i > 0;
-              const showRight = i < subs.length - 1;
-              return (
-                <div key={s.id} className="flex flex-col items-center">
-                  <div className="relative h-6 w-full">
-                    {showLeft && <div className="absolute top-0 right-1/2 left-0 h-px bg-border" />}
-                    {showRight && (
-                      <div className="absolute top-0 right-0 left-1/2 h-px bg-border" />
-                    )}
-                    <div className="-translate-x-1/2 absolute top-0 left-1/2 h-6 w-px bg-border" />
-                  </div>
-                  <AgentNode agent={s} size={48} />
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {subs.length > 0 && <SubAgentSection subs={subs} />}
     </div>
   );
 }

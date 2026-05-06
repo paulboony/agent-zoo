@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
-import { Icon } from "./icon.js";
+import { Clock, Cpu } from "lucide-react";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -51,16 +51,16 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       )}
       <div className="flex flex-wrap justify-center gap-1">
         {agent.model && (
-          <Badge variant="outline" className="max-w-40 gap-1 px-1.5 py-0 font-mono text-[10px]">
-            <Icon name="memory" />
+          <Badge variant="outline" className="max-w-40 font-mono">
+            <Cpu />
             <span className="truncate">{agent.model}</span>
           </Badge>
         )}
-        <Badge variant="outline" className="gap-1 px-1.5 py-0 text-[10px]">
-          <Icon name="schedule" />
+        <Badge variant="outline">
+          <Clock />
           {timeAgo(agent.last_event_at)}
         </Badge>
-        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+        <Badge variant="outline">
           {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
           {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
         </Badge>

@@ -21,6 +21,10 @@ test.describe("agent-zoo happy path", () => {
     // selecting alpha opens the detail pane with the agent tree
     await alphaCard.click();
     await expect(page).toHaveURL(/\/sessions\/seed-alpha$/);
+
+    // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
+    // reveal it via the toggle before asserting visibility.
+    await page.getByRole("button", { name: /show ended/i }).click();
     await expect(page.getByText("alpha-reviewer-1")).toBeVisible();
 
     // alpha status is running

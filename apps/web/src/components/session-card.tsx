@@ -1,5 +1,5 @@
+import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
-import { cn } from "@/lib/cn.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
@@ -7,8 +7,6 @@ import { StatusBadge } from "./status-badge.js";
 
 interface Props {
   session: SessionState;
-  selected: boolean;
-  onSelect: () => void;
 }
 
 function pickHeroAgent(session: SessionState) {
@@ -29,22 +27,18 @@ function elapsed(fromIso: string): string {
   return `${h}h`;
 }
 
-export function SessionCard({ session, selected, onSelect }: Props) {
+export function SessionCard({ session }: Props) {
+  const { state, isMobile } = useSidebar();
   const hero = pickHeroAgent(session);
   const heroKind = hero?.kind ?? "main";
   const heroState = statusToMascotState(session.status);
 
+  if (state === "collapsed" && !isMobile) {
+    return <Mascot kind={heroKind} state={heroState} size={20} />;
+  }
+
   return (
-    <button
-      type="button"
-      data-testid={`session-card-${session.id}`}
-      data-status={session.status}
-      onClick={onSelect}
-      className={cn(
-        "flex w-full cursor-pointer items-center gap-3 rounded-md border bg-card p-3 text-left text-card-foreground shadow-sm transition-colors hover:bg-card/80",
-        selected ? "border-accent" : "border-border",
-      )}
-    >
+    <>
       <Mascot kind={heroKind} state={heroState} size={44} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
@@ -80,6 +74,6 @@ export function SessionCard({ session, selected, onSelect }: Props) {
           <span className="truncate text-status-waiting text-xs">{session.waiting_reason}</span>
         )}
       </div>
-    </button>
+    </>
   );
 }

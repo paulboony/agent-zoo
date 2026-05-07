@@ -9,6 +9,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
@@ -16,6 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
+import { Monitor } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -49,11 +51,11 @@ export function Dashboard() {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center justify-between px-2 py-1 text-sidebar-foreground/70 text-xs">
-            <span>Sessions ({sessions.length})</span>
-            <span data-testid="connection-state">{connection}</span>
+          <div className="flex items-center gap-2 px-2 py-1">
+            <Monitor className="size-4 shrink-0" />
+            <h1 className="font-semibold group-data-[collapsible=icon]:hidden">Agent Zoo</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -69,11 +71,21 @@ export function Dashboard() {
             ) : (
               sessions.map((s) => (
                 <SidebarMenuItem key={s.id}>
-                  <SessionCard
-                    session={s}
-                    selected={s.id === selectedId}
-                    onSelect={() => navigate(`/sessions/${s.id}`)}
-                  />
+                  <SidebarMenuButton
+                    asChild
+                    isActive={s.id === selectedId}
+                    tooltip={s.cwd_basename}
+                    className="h-auto items-center gap-3 p-3"
+                  >
+                    <button
+                      type="button"
+                      data-testid={`session-card-${s.id}`}
+                      data-status={s.status}
+                      onClick={() => navigate(`/sessions/${s.id}`)}
+                    >
+                      <SessionCard session={s} />
+                    </button>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))
             )}
@@ -82,10 +94,7 @@ export function Dashboard() {
       </Sidebar>
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-border border-b px-4">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <h1 className="font-semibold">Agent Zoo</h1>
-          </div>
+          <SidebarTrigger />
           <div className="flex items-center gap-3">
             <NotificationToggle />
             <ThemePicker />

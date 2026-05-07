@@ -1,4 +1,4 @@
-import { Switch } from "@/components/ui/switch.js";
+import { Toggle } from "@/components/ui/toggle.js";
 import {
   Tooltip,
   TooltipContent,
@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip.js";
 import { isNotificationsEnabled, setNotificationsEnabled } from "@/hooks/use-notifications.js";
+import { Bell, BellOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Permission = "default" | "granted" | "denied" | "unsupported";
@@ -38,7 +39,9 @@ export function NotificationToggle() {
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Switch disabled aria-label="Notifications" />
+            <Toggle disabled aria-label="Notifications" size="sm">
+              <BellOff />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Notifications not supported in this browser.</TooltipContent>
         </Tooltip>
@@ -51,7 +54,9 @@ export function NotificationToggle() {
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Switch disabled aria-label="Notifications" />
+            <Toggle disabled aria-label="Notifications" size="sm">
+              <BellOff />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>
             Notifications denied. Update browser site settings to allow.
@@ -61,12 +66,16 @@ export function NotificationToggle() {
     );
   }
 
+  const on = permission === "granted" && enabled;
   return (
-    <Switch
+    <Toggle
       data-testid="notification-toggle"
-      checked={permission === "granted" && enabled}
-      onCheckedChange={handleChange}
+      pressed={on}
+      onPressedChange={handleChange}
       aria-label="Notifications"
-    />
+      size="sm"
+    >
+      {on ? <Bell /> : <BellOff />}
+    </Toggle>
   );
 }

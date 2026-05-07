@@ -58,7 +58,7 @@ export function Dashboard() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="gap-2 p-2">
-            {sessions.length === 0 && connection !== "open" ? (
+            {sessions.length === 0 && connection === "connecting" ? (
               <>
                 <SessionCardSkeleton />
                 <SessionCardSkeleton />

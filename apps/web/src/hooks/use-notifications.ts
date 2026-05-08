@@ -1,3 +1,4 @@
+import type { SessionTransition } from "@/lib/store.js";
 import { useStore } from "@/lib/store.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { useEffect } from "react";
@@ -78,7 +79,9 @@ function focusedSessionIdFromUrl(): string | null {
   return match?.[1] ?? null;
 }
 
-function maybeNotify(session: SessionState): void {
+type NotificationContent = { title: string; body: string };
+
+function fire(session: SessionState, content: NotificationContent): void {
   if (typeof Notification === "undefined") return;
   if (Notification.permission !== "granted") return;
   if (!isNotificationsEnabled()) return;
@@ -87,12 +90,49 @@ function maybeNotify(session: SessionState): void {
   const sessionFocused = focusedSessionIdFromUrl() === session.id;
   if (tabVisible && sessionFocused) return;
 
-  const title = `${session.cwd_basename} needs you`;
-  const body = session.waiting_reason ?? "Waiting for input";
   try {
-    new Notification(title, { body, tag: session.id });
+    new Notification(content.title, { body: content.body, tag: session.id });
   } catch {
     // permission state can race; ignore
+  }
+}
+
+function dispatchNotifications(t: SessionTransition): void {
+  const { session, prevStatus, isNew, newAgentIds } = t;
+  const prefs = getNotificationPrefs();
+
+  if (isNew && prefs.session_start) {
+    fire(session, { title: "Session started", body: session.cwd_basename });
+  }
+
+  if (prefs.session_error && prevStatus !== "error" && session.status === "error") {
+    const body =
+      session.agents.main?.last_tool_input_summary ?? "Something went wrong";
+    fire(session, { title: `${session.cwd_basename} error`, body });
+  }
+
+  if (prefs.session_complete && prevStatus !== "ended" && session.status === "ended") {
+    fire(session, { title: `${session.cwd_basename} done`, body: "Session ended" });
+  }
+
+  if (
+    prefs.waiting_for_human &&
+    prevStatus !== "waiting_for_human" &&
+    session.status === "waiting_for_human"
+  ) {
+    const body = session.waiting_reason ?? "Waiting for input";
+    fire(session, { title: `${session.cwd_basename} needs you`, body });
+  }
+
+  if (prefs.subagent_spawn && newAgentIds.length > 0) {
+    for (const agentId of newAgentIds) {
+      const agent = session.agents[agentId];
+      if (!agent) continue;
+      fire(session, {
+        title: `New ${agent.kind} agent`,
+        body: session.cwd_basename,
+      });
+    }
   }
 }
 
@@ -101,10 +141,7 @@ export function useNotifications(): void {
     const unsubscribe = useStore.subscribe((state, prev) => {
       const t = state.lastTransition;
       if (!t || t === prev.lastTransition) return;
-      const wasWaiting = (t.prevStatus ?? null) === "waiting_for_human";
-      const isWaiting = t.session.status === "waiting_for_human";
-      if (wasWaiting || !isWaiting) return;
-      maybeNotify(t.session);
+      dispatchNotifications(t);
     });
     return unsubscribe;
   }, []);

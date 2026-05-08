@@ -7,6 +7,7 @@ import { ThemePicker } from "@/components/theme-picker.js";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -18,7 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
-import { Monitor } from "lucide-react";
+import { Monitor, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -93,6 +94,22 @@ export function Dashboard() {
             )}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === "/settings"}
+                tooltip="Settings"
+              >
+                <button type="button" onClick={() => navigate("/settings")}>
+                  <SettingsIcon />
+                  <span>Settings</span>
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-border border-b px-4">

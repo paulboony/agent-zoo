@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state.js";
+import { Settings } from "@/pages/settings.js";
 import { NotificationToggle } from "@/components/notification-toggle.js";
 import { SessionCard } from "@/components/session-card.js";
 import { SessionDetail } from "@/components/session-detail.js";
@@ -19,7 +20,7 @@ import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
 import { Monitor } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 function SessionCardSkeleton() {
   return (
@@ -37,6 +38,7 @@ function SessionCardSkeleton() {
 export function Dashboard() {
   const params = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const sessionsMap = useStore((s) => s.sessions);
   const connection = useStore((s) => s.connection);
   const selectedId = params.id ?? null;
@@ -101,7 +103,9 @@ export function Dashboard() {
           </div>
         </header>
         <div className="min-h-0 flex-1 overflow-hidden">
-          {selected ? (
+          {location.pathname === "/settings" ? (
+            <Settings />
+          ) : selected ? (
             <SessionDetail session={selected} />
           ) : (
             <EmptyState message="Select a session on the left." />

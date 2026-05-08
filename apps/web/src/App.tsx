@@ -14,6 +14,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions/:id" element={<Dashboard />} />
+        <Route path="/settings" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

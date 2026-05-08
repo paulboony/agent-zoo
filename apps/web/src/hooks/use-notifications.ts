@@ -79,7 +79,7 @@ function focusedSessionIdFromUrl(): string | null {
   return match?.[1] ?? null;
 }
 
-type NotificationContent = { title: string; body: string };
+type NotificationContent = { title: string; body: string; tag?: string };
 
 function fire(session: SessionState, content: NotificationContent): void {
   if (typeof Notification === "undefined") return;
@@ -91,7 +91,10 @@ function fire(session: SessionState, content: NotificationContent): void {
   if (tabVisible && sessionFocused) return;
 
   try {
-    new Notification(content.title, { body: content.body, tag: session.id });
+    new Notification(content.title, {
+      body: content.body,
+      tag: content.tag ?? session.id,
+    });
   } catch {
     // permission state can race; ignore
   }
@@ -131,6 +134,7 @@ function dispatchNotifications(t: SessionTransition): void {
       fire(session, {
         title: `New ${agent.kind} agent`,
         body: session.cwd_basename,
+        tag: `${session.id}:${agentId}`,
       });
     }
   }

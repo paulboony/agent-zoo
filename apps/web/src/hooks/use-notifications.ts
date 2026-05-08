@@ -20,6 +20,59 @@ export function setNotificationsEnabled(enabled: boolean): void {
   }
 }
 
+export type NotificationEvent =
+  | "waiting_for_human"
+  | "session_error"
+  | "session_start"
+  | "session_complete"
+  | "subagent_spawn";
+
+export type NotificationPrefs = Record<NotificationEvent, boolean>;
+
+const PREF_KEYS: Record<NotificationEvent, string> = {
+  waiting_for_human: "dashboard.notifications.waiting_for_human",
+  session_error: "dashboard.notifications.session_error",
+  session_start: "dashboard.notifications.session_start",
+  session_complete: "dashboard.notifications.session_complete",
+  subagent_spawn: "dashboard.notifications.subagent_spawn",
+};
+
+const DEFAULT_PREFS: NotificationPrefs = {
+  waiting_for_human: true,
+  session_error: true,
+  session_start: false,
+  session_complete: false,
+  subagent_spawn: false,
+};
+
+function readPref(event: NotificationEvent): boolean {
+  try {
+    const raw = localStorage.getItem(PREF_KEYS[event]);
+    if (raw === null) return DEFAULT_PREFS[event];
+    return raw === "true";
+  } catch {
+    return DEFAULT_PREFS[event];
+  }
+}
+
+export function getNotificationPrefs(): NotificationPrefs {
+  return {
+    waiting_for_human: readPref("waiting_for_human"),
+    session_error: readPref("session_error"),
+    session_start: readPref("session_start"),
+    session_complete: readPref("session_complete"),
+    subagent_spawn: readPref("subagent_spawn"),
+  };
+}
+
+export function setNotificationPref(event: NotificationEvent, value: boolean): void {
+  try {
+    localStorage.setItem(PREF_KEYS[event], value ? "true" : "false");
+  } catch {
+    // private mode etc.
+  }
+}
+
 function focusedSessionIdFromUrl(): string | null {
   const match = /^\/sessions\/([^/?#]+)/.exec(window.location.pathname);
   return match?.[1] ?? null;

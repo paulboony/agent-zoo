@@ -7,6 +7,9 @@ export type ConnectionState = "connecting" | "open" | "closed";
 export interface SessionTransition {
   session: SessionState;
   prevStatus: SessionState["status"] | null;
+  isNew: boolean;
+  /** Agent ids in `session.agents` that were absent in the previous snapshot. Excludes `"main"`. */
+  newAgentIds: string[];
 }
 
 interface ClientState {
@@ -43,11 +46,22 @@ export const useStore = create<ClientState>((set) => ({
           return { seq: msg.seq, sessions: map, lastTransition: null };
         }
         case "session_upsert": {
-          const prev = state.sessions[msg.session.id]?.status ?? null;
+          const prevSession = state.sessions[msg.session.id];
+          const prevStatus = prevSession?.status ?? null;
+          const isNew = !prevSession;
+          const prevAgentIds = new Set(prevSession ? Object.keys(prevSession.agents) : []);
+          const newAgentIds = Object.keys(msg.session.agents).filter(
+            (id) => id !== "main" && !prevAgentIds.has(id),
+          );
           return {
             seq: msg.seq,
             sessions: { ...state.sessions, [msg.session.id]: msg.session },
-            lastTransition: { session: msg.session, prevStatus: prev },
+            lastTransition: {
+              session: msg.session,
+              prevStatus,
+              isNew,
+              newAgentIds,
+            },
           };
         }
         case "session_remove": {

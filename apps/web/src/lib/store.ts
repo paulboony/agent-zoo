@@ -8,7 +8,10 @@ export interface SessionTransition {
   session: SessionState;
   prevStatus: SessionState["status"] | null;
   isNew: boolean;
-  /** Agent ids in `session.agents` that were absent in the previous snapshot. Excludes `"main"`. */
+  /**
+   * Sub-agent ids added by this upsert. Empty when `isNew` is true (first sight
+   * of a session counts as session-start, not as subagent spawns). Excludes `"main"`.
+   */
   newAgentIds: string[];
 }
 
@@ -50,9 +53,11 @@ export const useStore = create<ClientState>((set) => ({
           const prevStatus = prevSession?.status ?? null;
           const isNew = !prevSession;
           const prevAgentIds = new Set(prevSession ? Object.keys(prevSession.agents) : []);
-          const newAgentIds = Object.keys(msg.session.agents).filter(
-            (id) => id !== "main" && !prevAgentIds.has(id),
-          );
+          const newAgentIds = isNew
+            ? []
+            : Object.keys(msg.session.agents).filter(
+                (id) => id !== "main" && !prevAgentIds.has(id),
+              );
           return {
             seq: msg.seq,
             sessions: { ...state.sessions, [msg.session.id]: msg.session },

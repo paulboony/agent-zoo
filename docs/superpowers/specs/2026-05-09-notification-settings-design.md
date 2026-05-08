@@ -232,10 +232,12 @@ If any of 1–5 fails, the notification is silently dropped.
 | `waiting_for_human`| `${cwd_basename} needs you`    | `waiting_reason ?? "Waiting for input"` (existing)  |
 | `subagent_spawn`   | `New ${agent.kind} agent`      | `${cwd_basename}`                                   |
 
-All notifications use `tag: session.id` so the OS notification center
-collapses repeated events for the same session into a single banner. The
-subagent variant intentionally shares the tag — multiple sub-agents in the
-same session collapse together rather than stacking.
+Single-fire events (start, error, complete, waiting) use `tag: session.id`
+so the OS notification center collapses repeated events for the same
+session into a single banner. The subagent variant uses `tag:
+"${session.id}:${agentId}"` so multiple sub-agents arriving in the same
+upsert remain visible as separate notifications instead of overwriting
+each other.
 
 ## 8. Files touched
 

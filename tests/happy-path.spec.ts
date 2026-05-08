@@ -55,4 +55,32 @@ test.describe("agent-zoo happy path", () => {
     const defaultSvg = await mascot.innerHTML();
     expect(defaultSvg).not.toBe(jrpgSvg);
   });
+
+  test("settings page exposes the five notification switches", async ({ page }) => {
+    await page.goto("/settings");
+
+    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
+
+    const expectedSwitches = [
+      { id: "waiting_for_human", label: "Waiting for human input" },
+      { id: "session_error", label: "Session errors" },
+      { id: "session_start", label: "New session starts" },
+      { id: "session_complete", label: "Session completes" },
+      { id: "subagent_spawn", label: "Subagent spawned" },
+    ];
+
+    for (const { id, label } of expectedSwitches) {
+      await expect(page.getByText(label, { exact: true })).toBeVisible();
+      await expect(page.getByTestId(`notif-switch-${id}`)).toBeVisible();
+    }
+
+    // Toggling a switch persists across reload.
+    const subagent = page.getByTestId("notif-switch-subagent_spawn");
+    const before = await subagent.getAttribute("data-state");
+    await subagent.click();
+    await page.reload();
+    const after = await page.getByTestId("notif-switch-subagent_spawn").getAttribute("data-state");
+    expect(after).not.toBe(before);
+  });
 });

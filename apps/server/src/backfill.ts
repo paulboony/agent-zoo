@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import type { Dirent } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { HookEnvelope, HookPayload } from "@agent-zoo/shared";
+import type { AgentState, HookEnvelope, HookPayload } from "@agent-zoo/shared";
 import { logger } from "./logger.js";
 import { reduce } from "./reducer.js";
 import type { Store } from "./state.js";
@@ -148,6 +148,80 @@ function synthesise(entry: unknown): { timestamp: string; payload: HookPayload }
   }
 
   return null;
+}
+
+export async function refreshMainAgentModels(store: Store): Promise<void> {
+  const targets: { id: string; main: AgentState }[] = [];
+  for (const session of store.sessions.values()) {
+    const main = session.agents.main;
+    if (main && !main.model) targets.push({ id: session.id, main });
+  }
+  if (targets.length === 0) return;
+
+  const home = process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
+  const projectsDir = path.join(home, "projects");
+
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(projectsDir, { withFileTypes: true, recursive: true });
+  } catch {
+    return;
+  }
+
+  const cutoff = Date.now() - TWENTY_FOUR_HOURS_MS;
+  const pending = new Map(targets.map((t) => [t.id, t.main]));
+
+  for (const entry of entries) {
+    if (pending.size === 0) break;
+    if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
+    const parent =
+      "parentPath" in entry && typeof entry.parentPath === "string"
+        ? entry.parentPath
+        : projectsDir;
+    const fullPath = path.join(parent, entry.name);
+    try {
+      const stat = await fs.stat(fullPath);
+      if (stat.mtimeMs < cutoff) continue;
+      const content = await fs.readFile(fullPath, "utf8");
+      const tail = content
+        .split("\n")
+        .filter((l) => l.trim().length > 0)
+        .slice(-TAIL_LINES);
+      for (let i = tail.length - 1; i >= 0; i--) {
+        const raw = tail[i];
+        if (!raw) continue;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          continue;
+        }
+        if (!parsed || typeof parsed !== "object") continue;
+        const e = parsed as Record<string, unknown>;
+        if (typeof e.agentId === "string" || typeof e.agent_id === "string") continue;
+        const type = typeof e.type === "string" ? e.type : undefined;
+        const role = typeof e.role === "string" ? e.role : undefined;
+        if (type !== "assistant" && role !== "assistant") continue;
+        const sessionId =
+          typeof e.sessionId === "string"
+            ? e.sessionId
+            : typeof e.session_id === "string"
+              ? e.session_id
+              : undefined;
+        if (!sessionId) continue;
+        const main = pending.get(sessionId);
+        if (!main) continue;
+        const model = extractModel(parsed);
+        if (model) {
+          main.model = model;
+          pending.delete(sessionId);
+          break;
+        }
+      }
+    } catch (err) {
+      logger.warn({ err: String(err), file: fullPath }, "model refresh failed");
+    }
+  }
 }
 
 function extractModel(entry: unknown): string | undefined {

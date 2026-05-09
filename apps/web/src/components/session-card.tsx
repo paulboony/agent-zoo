@@ -1,5 +1,7 @@
 import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
+import { useNow } from "@/hooks/use-now.js";
+import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
@@ -16,19 +18,13 @@ function pickHeroAgent(session: SessionState) {
   return ranked[0] ?? null;
 }
 
-function elapsed(fromIso: string): string {
-  const ms = Date.now() - Date.parse(fromIso);
-  if (Number.isNaN(ms)) return "";
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return `${h}h`;
+function elapsed(fromIso: string, now: number): string {
+  return formatDuration(now - Date.parse(fromIso));
 }
 
 export function SessionCard({ session }: Props) {
   const { state, isMobile } = useSidebar();
+  const now = useNow();
   const hero = pickHeroAgent(session);
   const heroKind = hero?.kind ?? "main";
   const heroState = statusToMascotState(session.status);
@@ -52,21 +48,32 @@ export function SessionCard({ session }: Props) {
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="truncate text-fg/60 text-xs">
-              {session.cwd} · {elapsed(session.started_at)}
+              {session.cwd} · {elapsed(session.started_at, now)}
             </span>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-md break-all">
             {session.cwd}
           </TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="truncate font-mono text-fg/45 text-xs">{session.id.slice(0, 8)}</span>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="break-all">
-            {session.id}
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex min-w-0 items-center gap-2 text-xs">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="truncate font-mono text-fg/45">{session.id.slice(0, 8)}</span>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="break-all">
+              {session.id}
+            </TooltipContent>
+          </Tooltip>
+          <span className="text-fg/45">·</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0 text-fg/60">active {elapsed(session.last_event_at, now)}</span>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Last event: {new Date(session.last_event_at).toLocaleString()}
+            </TooltipContent>
+          </Tooltip>
+        </div>
         {session.current_activity && (
           <span className="truncate text-fg/80 text-xs">{session.current_activity}</span>
         )}

@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
+import { useNow } from "@/hooks/use-now.js";
+import { formatDuration } from "@/lib/time.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { Clock, Code, Cpu } from "lucide-react";
@@ -11,22 +13,14 @@ import { useState } from "react";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, now: number): string {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "";
-  const ms = Date.now() - t;
-  if (ms < 0 || ms < 5000) return "just now";
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return formatDuration(now - t, { suffix: " ago", justNowMs: 5000 });
 }
 
 function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
+  const now = useNow();
   const showTool = agent.current_tool ?? agent.last_tool;
   const showSummary = agent.current_tool
     ? agent.current_tool_input_summary
@@ -35,7 +29,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolText = toolLabel ? `${toolLabel}${showSummary ? `: ${showSummary}` : ""}` : "";
 
   return (
-    <Card className="min-w-40 max-w-90 items-center gap-1.5 rounded-md p-3">
+    <Card className="w-full items-center gap-1.5 rounded-md p-3 sm:w-72">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm">
@@ -69,7 +63,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         )}
         <Badge variant="outline">
           <Clock />
-          {timeAgo(agent.last_event_at)}
+          {timeAgo(agent.last_event_at, now)}
         </Badge>
         <Badge variant="outline">
           {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}

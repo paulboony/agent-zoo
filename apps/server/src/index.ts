@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { runBackfill } from "./backfill.js";
+import { refreshMainAgentModels, runBackfill } from "./backfill.js";
 import { logger } from "./logger.js";
 import { hookRoute } from "./routes/hook.js";
 import { snapshotRoutes } from "./routes/snapshot.js";
@@ -14,6 +14,11 @@ const PORT = Number(process.env.PORT ?? 7777);
 async function main(): Promise<void> {
   const store = createStore();
   await runBackfill(store);
+  setInterval(() => {
+    refreshMainAgentModels(store).catch((err) =>
+      logger.warn({ err: String(err) }, "periodic model refresh failed"),
+    );
+  }, 30_000);
 
   const app = new Hono();
   app.get("/healthz", (c) => c.json({ ok: true }));

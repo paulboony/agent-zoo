@@ -27,6 +27,14 @@
     "--popover": "oklch(0.22 0.02 280)",
     "--popover-foreground": "oklch(0.95 0.01 80)",
     "--destructive": "oklch(0.65 0.22 25)",
-    "--destructive-foreground": "oklch(0.99 0 0)"
+    "--destructive-foreground": "oklch(0.99 0 0)",
+    "--sidebar": "oklch(0.2 0.02 280)",
+    "--sidebar-foreground": "oklch(0.95 0.01 80)",
+    "--sidebar-primary": "oklch(0.72 0.18 50)",
+    "--sidebar-primary-foreground": "oklch(0.18 0.02 280)",
+    "--sidebar-accent": "oklch(0.28 0.02 280)",
+    "--sidebar-accent-foreground": "oklch(0.95 0.01 80)",
+    "--sidebar-border": "oklch(0.32 0.02 280)",
+    "--sidebar-ring": "oklch(0.72 0.18 50)"
   }
 }

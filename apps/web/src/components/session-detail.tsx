@@ -111,7 +111,7 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
           </Button>
         )}
       </div>
-      <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(18rem,100%),1fr))]">
+      <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
         {active.map((s) => (
           <AgentNode key={s.id} agent={s} size={64} />
         ))}

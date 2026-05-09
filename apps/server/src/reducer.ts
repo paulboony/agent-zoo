@@ -51,14 +51,14 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   const existingAgent = session.agents[agentId];
   let agent: AgentState;
   if (!existingAgent) {
-    const agentTypeRaw =
+    const agentType =
       "agent_type" in payload && typeof payload.agent_type === "string"
         ? payload.agent_type
         : undefined;
     agent = {
       id: agentId,
-      kind: agentId === "main" ? "main" : resolveAgentKind(agentTypeRaw),
-      ...(agentTypeRaw !== undefined ? { agent_type_raw: agentTypeRaw } : {}),
+      kind: agentId === "main" ? "main" : resolveAgentKind(agentType),
+      ...(agentType !== undefined ? { agent_type: agentType } : {}),
       status: "running",
       started_at: received_at,
       last_event_at: received_at,

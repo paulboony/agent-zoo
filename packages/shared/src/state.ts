@@ -9,8 +9,8 @@ export interface AgentState {
   id: string;
   /** Internal classification derived from `agent_type` via `resolveAgentKind`. */
   kind: AgentKind;
-  /** Raw `agent_type` from SubAgentFields (e.g. "general-purpose", "code-reviewer"). */
-  agent_type_raw?: string;
+  /** `agent_type` from SubAgentFields (e.g. "general-purpose", "code-reviewer"). */
+  agent_type?: string;
   /** Human description from the parent's Task tool invocation (`tool_input.description`). */
   label?: string;
   /** Current state — derived from the most recent transition event for this agent. */

@@ -31,11 +31,16 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   return (
     <Card className="w-full items-center gap-1.5 rounded-md p-3 sm:w-72">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-sm">
-          {agent.label ?? agent.agent_type_raw ?? agent.kind}
-        </span>
-        <StatusBadge status={agent.status} />
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm">
+            {agent.label ?? agent.agent_type ?? agent.kind}
+          </span>
+          <StatusBadge status={agent.status} />
+        </div>
+        {agent.label && (agent.agent_type ?? agent.kind) && (
+          <span className="text-fg/50 text-xs">{agent.agent_type ?? agent.kind}</span>
+        )}
       </div>
       <Tooltip>
         <TooltipTrigger asChild>

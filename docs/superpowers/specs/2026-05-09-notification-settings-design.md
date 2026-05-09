@@ -217,8 +217,11 @@ For each candidate notification:
 3. `isNotificationsEnabled()` (master) is true.
 4. The per-event pref for that event is true.
 5. Focus suppression: skip if `document.visibilityState === "visible"` AND
-   the URL points at this session (`/sessions/<id>`). Applies uniformly to
-   all five events.
+   the URL points at this session (`/sessions/<id>`). Applied to
+   `session_start`, `session_complete`, and `subagent_spawn` only — the
+   you-must-act events (`session_error`, `waiting_for_human`) bypass
+   suppression and additionally pass `requireInteraction: true` so the OS
+   keeps the banner on screen until the user dismisses it.
 
 If any of 1–5 fails, the notification is silently dropped.
 

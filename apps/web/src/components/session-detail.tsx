@@ -48,18 +48,20 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         </TooltipTrigger>
         <TooltipContent className="break-all">{agent.id}</TooltipContent>
       </Tooltip>
-      <div className="flex flex-wrap justify-center gap-1">
-        {toolLabel && (
+      {toolLabel && (
+        <div className="flex w-full justify-center">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="max-w-48">
+              <Badge variant="outline" className="max-w-full">
                 <Code />
                 <span className="truncate">{toolText}</span>
               </Badge>
             </TooltipTrigger>
             <TooltipContent className="break-all">{toolText}</TooltipContent>
           </Tooltip>
-        )}
+        </div>
+      )}
+      <div className="flex flex-wrap justify-center gap-1">
         {agent.model && (
           <Badge variant="outline" className="max-w-40 font-mono">
             <Cpu />
@@ -111,12 +113,12 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
       </div>
       <div className="flex flex-wrap justify-center gap-3">
         {active.map((s) => (
-          <AgentNode key={s.id} agent={s} size={48} />
+          <AgentNode key={s.id} agent={s} size={64} />
         ))}
         {showEnded &&
           ended.map((s) => (
             <div key={s.id} className="opacity-50">
-              <AgentNode agent={s} size={48} />
+              <AgentNode agent={s} size={64} />
             </div>
           ))}
       </div>

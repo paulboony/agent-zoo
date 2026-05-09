@@ -21,7 +21,7 @@ import { fetchSnapshot, openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
 import { Monitor, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 function SessionCardSkeleton() {
   return (
@@ -56,10 +56,13 @@ export function Dashboard() {
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2 px-2 py-1">
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
             <Monitor className="size-4 shrink-0" />
             <h1 className="font-semibold group-data-[collapsible=icon]:hidden">Agent Zoo</h1>
-          </div>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="gap-2 p-2">

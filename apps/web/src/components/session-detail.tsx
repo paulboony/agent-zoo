@@ -29,7 +29,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolText = toolLabel ? `${toolLabel}${showSummary ? `: ${showSummary}` : ""}` : "";
 
   return (
-    <Card className="w-full items-center gap-1.5 rounded-md p-3 sm:w-72">
+    <Card className="w-full items-center gap-1.5 rounded-md p-3">
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex flex-col items-center gap-0.5">
         <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
           </Button>
         )}
       </div>
-      <div className="flex flex-wrap justify-center gap-3">
+      <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(18rem,100%),1fr))]">
         {active.map((s) => (
           <AgentNode key={s.id} agent={s} size={64} />
         ))}
@@ -138,7 +138,9 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
 
   return (
     <div className="flex flex-col items-center pt-4">
-      <AgentNode agent={main} size={64} />
+      <div className="w-full max-w-md">
+        <AgentNode agent={main} size={64} />
+      </div>
       {subs.length > 0 && <SubAgentSection subs={subs} />}
     </div>
   );

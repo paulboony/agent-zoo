@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
+import { resolveDisplayKind } from "@/lib/agent-kind.js";
 import { formatDuration } from "@/lib/time.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
@@ -33,7 +34,7 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       <div className="absolute top-2 right-2">
         <StatusBadge status={agent.status} />
       </div>
-      <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
+      <Mascot kind={resolveDisplayKind(agent)} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex flex-col items-center gap-0.5">
         <span className="font-medium text-sm">
           {agent.label ?? agent.agent_type ?? agent.kind}

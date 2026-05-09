@@ -1,6 +1,7 @@
 import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
+import { resolveDisplayKind } from "@/lib/agent-kind.js";
 import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
@@ -26,7 +27,7 @@ export function SessionCard({ session }: Props) {
   const { state, isMobile } = useSidebar();
   const now = useNow();
   const hero = pickHeroAgent(session);
-  const heroKind = hero?.kind ?? "main";
+  const heroKind = hero ? resolveDisplayKind(hero) : "main";
   const heroState = statusToMascotState(session.status);
 
   if (state === "collapsed" && !isMobile) {

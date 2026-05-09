@@ -59,15 +59,15 @@ async function demo() {
 
   await sleep(150);
 
-  // Alpha spawns a code-reviewer sub-agent
+  // Alpha spawns a general-purpose sub-agent
   await post({
     hook_event_name: "SubagentStart",
     session_id: "seed-alpha",
     cwd: "/Users/demo/projects/alpha",
     transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
-    agent_id: "alpha-reviewer-1",
-    agent_type: "code-reviewer",
-    agent_transcript_path: "/Users/demo/.claude/projects/alpha-reviewer.jsonl",
+    agent_id: "alpha-general-1",
+    agent_type: "general-purpose",
+    agent_transcript_path: "/Users/demo/.claude/projects/alpha-general.jsonl",
   });
 
   await sleep(150);
@@ -103,9 +103,9 @@ async function demo() {
     session_id: "seed-alpha",
     cwd: "/Users/demo/projects/alpha",
     transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
-    agent_id: "alpha-reviewer-1",
-    agent_type: "code-reviewer",
-    agent_transcript_path: "/Users/demo/.claude/projects/alpha-reviewer.jsonl",
+    agent_id: "alpha-general-1",
+    agent_type: "general-purpose",
+    agent_transcript_path: "/Users/demo/.claude/projects/alpha-general.jsonl",
   });
 
   await post({

@@ -25,10 +25,10 @@ test.describe("agent-zoo happy path", () => {
     // alpha-explorer-1 stays active and is visible by default
     await expect(page.getByText("alpha-explorer-1")).toBeVisible();
 
-    // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
+    // alpha-general-1 ended via SubagentStop and is hidden by default;
     // reveal it via the toggle before asserting visibility.
     await page.getByRole("button", { name: /show ended/i }).click();
-    await expect(page.getByText("alpha-reviewer-1")).toBeVisible();
+    await expect(page.getByText("alpha-general-1")).toBeVisible();
 
     // capture full-page screenshot for visual review (gitignored under test-results/)
     await page.screenshot({

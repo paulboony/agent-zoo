@@ -29,15 +29,15 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const toolText = toolLabel ? `${toolLabel}${showSummary ? `: ${showSummary}` : ""}` : "";
 
   return (
-    <Card className="w-full items-center gap-1.5 rounded-md p-3">
+    <Card className="relative w-full items-center gap-1.5 rounded-md p-3">
+      <div className="absolute top-2 right-2">
+        <StatusBadge status={agent.status} />
+      </div>
       <Mascot kind={agent.kind} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex flex-col items-center gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">
-            {agent.label ?? agent.agent_type ?? agent.kind}
-          </span>
-          <StatusBadge status={agent.status} />
-        </div>
+        <span className="font-medium text-sm">
+          {agent.label ?? agent.agent_type ?? agent.kind}
+        </span>
         {agent.label && (agent.agent_type ?? agent.kind) && (
           <span className="text-fg/50 text-xs">{agent.agent_type ?? agent.kind}</span>
         )}

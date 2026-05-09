@@ -3,6 +3,38 @@ import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent
 import { resolveAgentKind, rollupSessionStatus } from "@agent-zoo/shared";
 import type { Store } from "./state.js";
 
+function captureTaskDescription(
+  store: Store,
+  sessionId: string,
+  toolUseId: string,
+  toolInput: unknown,
+): void {
+  if (!toolInput || typeof toolInput !== "object") return;
+  const obj = toolInput as Record<string, unknown>;
+  const description = typeof obj.description === "string" ? obj.description : undefined;
+  if (!description) return;
+  const subagent_type = typeof obj.subagent_type === "string" ? obj.subagent_type : "";
+  let perSession = store.pending_subagents.get(sessionId);
+  if (!perSession) {
+    perSession = new Map();
+    store.pending_subagents.set(sessionId, perSession);
+  }
+  perSession.set(toolUseId, { description, subagent_type });
+}
+
+function consumeSubagentLabel(
+  store: Store,
+  sessionId: string,
+  agentId: string,
+): string | undefined {
+  const perSession = store.pending_subagents.get(sessionId);
+  if (!perSession) return undefined;
+  const pending = perSession.get(agentId);
+  if (!pending) return undefined;
+  perSession.delete(agentId);
+  return pending.description;
+}
+
 export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   const { payload, received_at } = env;
   if (!payload?.session_id || !payload?.hook_event_name) return null;
@@ -33,6 +65,13 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
       tool_calls_count: 0,
       error_count: 0,
     };
+    // Carry the parent's Task description over to the new sub-agent. Hook
+    // ordering is PreToolUse(Task) → SubagentStart, so by the time we reach
+    // here the description is already in the pending buffer (if there was one).
+    if (payload.hook_event_name === "SubagentStart") {
+      const label = consumeSubagentLabel(store, sessionId, agentId);
+      if (label !== undefined) agent.label = label;
+    }
   } else {
     agent = { ...existingAgent };
   }
@@ -41,6 +80,13 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   applyTransition(agent, session, payload);
   session.agents[agentId] = agent;
 
+  // Stash Task tool descriptions under their tool_use_id so the eventual
+  // SubagentStart can pick them up. agent_id == tool_use_id for Task-spawned
+  // sub-agents.
+  if (payload.hook_event_name === "PreToolUse" && payload.tool_name === "Task") {
+    captureTaskDescription(store, sessionId, payload.tool_use_id, payload.tool_input);
+  }
+
   session.status = rollupSessionStatus(session.agents);
   if (session.status !== "waiting_for_human") {
     // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
@@ -48,6 +94,9 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   }
   if (session.status === "ended") {
     session.ended_at = received_at;
+  }
+  if (payload.hook_event_name === "SessionEnd") {
+    store.pending_subagents.delete(sessionId);
   }
 
   store.sessions.set(sessionId, session);
@@ -195,6 +244,10 @@ function summariseToolInput(toolName: string, input: unknown): string | undefine
     case "Glob":
     case "Grep":
       return typeof obj.pattern === "string" ? obj.pattern : undefined;
+    case "Task": {
+      const desc = typeof obj.description === "string" ? obj.description : undefined;
+      return desc ? desc.slice(0, 80) : undefined;
+    }
     default:
       return undefined;
   }

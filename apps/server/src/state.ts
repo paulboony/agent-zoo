@@ -24,11 +24,22 @@ export function createCircularBuffer<T>(capacity: number): CircularBuffer<T> {
   };
 }
 
+export interface PendingSubagent {
+  description: string;
+  subagent_type: string;
+}
+
 export interface Store {
   sessions: Map<string, SessionState>;
   seq: number;
   subscribers: Set<(msg: SseMessage) => void>;
   recent_events: CircularBuffer<HookPayload>;
+  /**
+   * Per-session correlation buffer: tool_use_id → Task input.
+   * Populated on the parent's PreToolUse for the Task tool, consumed when
+   * the matching SubagentStart arrives, cleared when the session ends.
+   */
+  pending_subagents: Map<string, Map<string, PendingSubagent>>;
 }
 
 export function createStore(): Store {
@@ -37,6 +48,7 @@ export function createStore(): Store {
     seq: 0,
     subscribers: new Set(),
     recent_events: createCircularBuffer<HookPayload>(1000),
+    pending_subagents: new Map(),
   };
 }
 

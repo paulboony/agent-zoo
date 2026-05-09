@@ -2,15 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "server",
+      "name": "app",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@agent-zoo/server", "dev"],
-      "port": 7777
-    },
-    {
-      "name": "web",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@agent-zoo/web", "dev"],
+      "runtimeArgs": ["dev"],
       "port": 5173
     }
   ]

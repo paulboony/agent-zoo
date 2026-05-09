@@ -13,9 +13,18 @@ import type { AgentKind, AgentState } from "@agent-zoo/shared";
  * Add or tweak rules here; nothing else needs to change.
  */
 const LABEL_RULES: { pattern: RegExp; kind: AgentKind }[] = [
-  { pattern: /review|audit|critique/i, kind: "code-reviewer" },
-  { pattern: /explor|search|find|investigat|locat|grep/i, kind: "explorer" },
-  { pattern: /writ|document|spec|plan|design|draft/i, kind: "writer" },
+  // Reviewers / auditors. Caught before "writer" so "spec review" lands
+  // on the reviewer mascot rather than the writer mascot.
+  { pattern: /review|audit|critique|inspect/i, kind: "code-reviewer" },
+  // Explorers — read-only investigation, navigation, debugging.
+  { pattern: /explor|search|find|investigat|locat|grep|trace|debug/i, kind: "explorer" },
+  // Writers / builders — anything that produces code, prose, or a plan.
+  // Common superpowers task labels start with "Implement Task N",
+  // "Fix [bug]", "Build [thing]", "Refactor [code]".
+  {
+    pattern: /implement|build|creat|writ|document|spec|plan|design|draft|refactor|fix\b|\badd\b/i,
+    kind: "writer",
+  },
 ];
 
 /**

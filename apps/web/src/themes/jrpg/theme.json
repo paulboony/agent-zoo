@@ -36,5 +36,24 @@
     "--sidebar-accent-foreground": "oklch(0.96 0.02 90)",
     "--sidebar-border": "oklch(0.34 0.06 240)",
     "--sidebar-ring": "oklch(0.78 0.18 80)"
+  },
+  "mascot_mode": "sprite",
+  "mascot_sprite": {
+    "cell": { "width": 16, "height": 24 },
+    "gap": { "x": 14, "y": 6 },
+    "rows": {
+      "main": 0,
+      "general": 0,
+      "explorer": 0,
+      "writer": 9,
+      "code-reviewer": 11,
+      "coder": 12
+    },
+    "states": {
+      "idle":    { "start": 0, "count": 1 },
+      "running": { "start": 0, "count": 2, "fps": 6 },
+      "waiting": { "start": 6, "count": 2, "fps": 3 },
+      "error":   { "start": 10, "count": 1 }
+    }
   }
 }

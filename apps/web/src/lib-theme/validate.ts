@@ -13,7 +13,14 @@ const REQUIRED_TOKENS = [
   "--status-error",
 ];
 
-const REQUIRED_KINDS: AgentKind[] = ["main", "code-reviewer", "explorer", "writer", "general"];
+const REQUIRED_KINDS: AgentKind[] = [
+  "main",
+  "code-reviewer",
+  "explorer",
+  "writer",
+  "coder",
+  "general",
+];
 
 export interface ThemeValidationIssue {
   themeId: string;
@@ -37,6 +44,38 @@ export function validateThemes(themes: Record<string, Theme>): ThemeValidationIs
           themeId: theme.id,
           message: `mascot SVG for "${kind}" contains forbidden <script> tag`,
         });
+      }
+    }
+
+    if (theme.mascotMode === "sprite") {
+      if (!theme.mascotSpriteUrl) {
+        issues.push({
+          themeId: theme.id,
+          message: "mascot_mode is 'sprite' but mascots/sprites.png is missing",
+        });
+      }
+      if (!theme.mascotSprite) {
+        issues.push({
+          themeId: theme.id,
+          message: "mascot_mode is 'sprite' but mascot_sprite spec is missing in theme.json",
+        });
+      } else {
+        for (const kind of REQUIRED_KINDS) {
+          if (theme.mascotSprite.rows[kind] === undefined) {
+            issues.push({
+              themeId: theme.id,
+              message: `mascot_sprite.rows missing entry for kind "${kind}"`,
+            });
+          }
+        }
+        for (const state of ["running", "waiting", "idle", "error"] as const) {
+          if (!theme.mascotSprite.states[state]) {
+            issues.push({
+              themeId: theme.id,
+              message: `mascot_sprite.states missing entry for state "${state}"`,
+            });
+          }
+        }
       }
     }
 

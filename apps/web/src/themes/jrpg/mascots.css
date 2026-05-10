@@ -94,8 +94,30 @@
   transform-origin: 50% 50%;
 }
 
+/* Sprite-mode rendering. .mascot[data-render="sprite"] is the cell-sized
+   wrapper; its child .mascot-sprite is the scaled inner element with the
+   background-image. The CSS variables --row, --start, --count, --dur,
+   --stride-x, --stride-y come from inline styles on .mascot-sprite. */
+.mascot-sprite {
+  background-position-x: calc(var(--start) * var(--stride-x) * -1);
+  background-position-y: calc(var(--row) * var(--stride-y) * -1);
+}
+
+.mascot-sprite[data-animate="true"] {
+  animation: sprite-cycle var(--dur) steps(var(--count), end) infinite;
+}
+
+@keyframes sprite-cycle {
+  to {
+    background-position-x: calc((var(--start) + var(--count)) * var(--stride-x) * -1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mascot * {
+    animation: none !important;
+  }
+  .mascot-sprite[data-animate="true"] {
     animation: none !important;
   }
 }

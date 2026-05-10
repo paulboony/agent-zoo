@@ -21,6 +21,11 @@ const mascotModules = import.meta.glob("../themes/*/mascots/*.svg", {
   query: "?raw",
   import: "default",
 }) as EagerStringRecord;
+const spriteModules = import.meta.glob("../themes/*/mascots/sprites.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as EagerStringRecord;
 const soundModules = import.meta.glob("../themes/*/notification.mp3", {
   eager: true,
   query: "?url",
@@ -32,6 +37,7 @@ const KIND_FILES: Record<AgentKind, string> = {
   "code-reviewer": "code-reviewer.svg",
   explorer: "explorer.svg",
   writer: "writer.svg",
+  coder: "coder.svg",
   general: "general.svg",
 };
 
@@ -46,6 +52,7 @@ function buildRegistry(): Record<string, Theme> {
     const cssKey = `${folder}/mascots.css`;
     const previewKey = `${folder}/preview.png`;
     const soundKey = `${folder}/notification.mp3`;
+    const spriteKey = `${folder}/mascots/sprites.png`;
 
     const mascots = {} as Record<AgentKind, string>;
     for (const kind of Object.keys(KIND_FILES) as AgentKind[]) {
@@ -60,9 +67,12 @@ function buildRegistry(): Record<string, Theme> {
       mascots,
       mascotsCss: cssModules[cssKey] ?? "",
       previewUrl: previewModules[previewKey] ?? "",
+      mascotMode: manifest.mascot_mode ?? "svg",
     };
     if (manifest.author !== undefined) theme.author = manifest.author;
     if (soundModules[soundKey] !== undefined) theme.notificationSoundUrl = soundModules[soundKey];
+    if (manifest.mascot_sprite !== undefined) theme.mascotSprite = manifest.mascot_sprite;
+    if (spriteModules[spriteKey] !== undefined) theme.mascotSpriteUrl = spriteModules[spriteKey];
 
     themes[themeId] = theme;
   }

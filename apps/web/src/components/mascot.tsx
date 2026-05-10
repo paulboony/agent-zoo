@@ -80,6 +80,8 @@ function SpriteMascot({
   const cellH = spec.cell.height;
   const gapX = spec.gap?.x ?? 0;
   const gapY = spec.gap?.y ?? 0;
+  const padX = spec.padding?.x ?? 0;
+  const padY = spec.padding?.y ?? 0;
   const strideX = cellW + gapX;
   const strideY = cellH + gapY;
 
@@ -125,6 +127,8 @@ function SpriteMascot({
             "--count": stateRange.count,
             "--stride-x": `${strideX}px`,
             "--stride-y": `${strideY}px`,
+            "--pad-x": `${padX}px`,
+            "--pad-y": `${padY}px`,
             "--dur": dur,
           } as React.CSSProperties
         }

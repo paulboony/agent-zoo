@@ -15,6 +15,13 @@ export interface SpriteGap {
   y?: number;
 }
 
+export interface SpritePadding {
+  /** px from the left edge of the image to the first column. */
+  x?: number;
+  /** px from the top edge of the image to the first row. */
+  y?: number;
+}
+
 export interface SpriteStateRange {
   /** Column index where this state's frames begin. */
   start: number;
@@ -27,6 +34,8 @@ export interface SpriteStateRange {
 export interface MascotSpriteSpec {
   cell: SpriteCell;
   gap?: SpriteGap;
+  /** Offset from the top-left corner of the image to the first cell. Defaults to 0,0. */
+  padding?: SpritePadding;
   rows: Record<AgentKind, number>;
   states: Record<MascotState, SpriteStateRange>;
 }

@@ -1,6 +1,6 @@
 {
-  "id": "jrpg",
-  "name": "Final Fantasy V",
+  "id": "final-fantasy",
+  "name": "Final Fantasy",
   "author": "agent-zoo",
   "tokens": {
     "--bg": "oklch(0.16 0.05 240)",
@@ -37,23 +37,24 @@
     "--sidebar-border": "oklch(0.34 0.06 240)",
     "--sidebar-ring": "oklch(0.78 0.18 80)"
   },
-  "mascot_mode": "sprite",
+  "mascot_mode": "svg",
   "mascot_sprite": {
     "cell": { "width": 16, "height": 24 },
-    "gap": { "x": 14, "y": 6 },
+    "padding": { "x": 0, "y": 0 },
+    "gap": { "x": 0, "y": 0 },
     "rows": {
       "main": 0,
       "general": 0,
       "explorer": 0,
-      "writer": 9,
-      "code-reviewer": 11,
-      "coder": 12
+      "writer": 0,
+      "code-reviewer": 0,
+      "coder": 0
     },
     "states": {
       "idle":    { "start": 0, "count": 1 },
       "running": { "start": 0, "count": 2, "fps": 6 },
-      "waiting": { "start": 6, "count": 2, "fps": 3 },
-      "error":   { "start": 10, "count": 1 }
+      "waiting": { "start": 0, "count": 1 },
+      "error":   { "start": 0, "count": 1 }
     }
   }
 }

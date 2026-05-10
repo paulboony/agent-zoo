@@ -39,21 +39,21 @@ test.describe("agent-zoo happy path", () => {
     // alpha status is running
     await expect(alphaCard.locator('[data-testid="status-running"]')).toBeVisible();
 
-    // theme picker switches default ↔ jrpg, flips data-theme on <html>
+    // theme picker switches default ↔ final-fantasy-v, flips data-theme on <html>
     await expect(page.locator("html")).toHaveAttribute("data-theme", "default");
     await page.getByTestId("theme-picker").click();
-    await page.getByTestId("theme-option-jrpg").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "jrpg");
+    await page.getByTestId("theme-option-final-fantasy-v").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy-v");
 
-    // mascot SVG content actually changes between themes
+    // mascot DOM changes between themes (default = inline SVG, FFV = sprite wrapper)
     const mascot = page.getByTestId("mascot-main").first();
-    const jrpgSvg = await mascot.innerHTML();
+    const ffvHtml = await mascot.innerHTML();
 
     await page.getByTestId("theme-picker").click();
     await page.getByTestId("theme-option-default").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "default");
-    const defaultSvg = await mascot.innerHTML();
-    expect(defaultSvg).not.toBe(jrpgSvg);
+    const defaultHtml = await mascot.innerHTML();
+    expect(defaultHtml).not.toBe(ffvHtml);
   });
 
   test("settings page exposes the five notification switches", async ({ page }) => {

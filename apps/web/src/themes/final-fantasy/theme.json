@@ -37,24 +37,24 @@
     "--sidebar-border": "oklch(0.34 0.06 240)",
     "--sidebar-ring": "oklch(0.78 0.18 80)"
   },
-  "mascot_mode": "svg",
+  "mascot_mode": "sprite",
   "mascot_sprite": {
-    "cell": { "width": 16, "height": 24 },
-    "padding": { "x": 0, "y": 0 },
-    "gap": { "x": 0, "y": 0 },
+    "cell": { "width": 20, "height": 24 },
+    "padding": { "x": 8, "y": 8 },
+    "gap": { "x": 12, "y": 8 },
     "rows": {
       "main": 0,
       "general": 0,
-      "explorer": 0,
-      "writer": 0,
-      "code-reviewer": 0,
-      "coder": 0
+      "explorer": 1,
+      "writer": 3,
+      "code-reviewer": 4,
+      "coder": 5
     },
     "states": {
       "idle":    { "start": 0, "count": 1 },
-      "running": { "start": 0, "count": 2, "fps": 6 },
+      "running": { "start": 2, "count": 2, "fps": 6 },
       "waiting": { "start": 0, "count": 1 },
-      "error":   { "start": 0, "count": 1 }
+      "error":   { "start": 8, "count": 1 }
     }
   }
 }

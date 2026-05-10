@@ -31,9 +31,12 @@ export function validateThemes(themes: Record<string, Theme>): ThemeValidationIs
   const issues: ThemeValidationIssue[] = [];
 
   for (const theme of Object.values(themes)) {
+    // SVG fallbacks are only required for svg-mode themes. Sprite-mode
+    // themes get their per-kind imagery from the sprite sheet.
+    const requireSvgs = theme.mascotMode !== "sprite";
     for (const kind of REQUIRED_KINDS) {
       const svg = theme.mascots[kind];
-      if (!svg || svg.trim().length === 0) {
+      if (requireSvgs && (!svg || svg.trim().length === 0)) {
         issues.push({
           themeId: theme.id,
           message: `missing mascot SVG for kind "${kind}"`,

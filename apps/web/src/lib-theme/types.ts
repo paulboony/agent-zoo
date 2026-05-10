@@ -23,20 +23,18 @@ export interface SpritePadding {
 }
 
 /**
- * Frames for one mascot state. Either form is valid:
+ * Frames for one mascot state. Columns to cycle through, in order.
+ * A single-element array is static (no animation).
  *
- *   { start: 0, count: 2 }       // contiguous shortcut: cols 0, 1
- *   { frames: [0, 3] }           // explicit, possibly non-contiguous
- *
- * `count: 1` and `frames: [N]` are both static (no animation).
+ *   { frames: [0] }              // static col 0
+ *   { frames: [0, 1] }           // 2-frame walk
+ *   { frames: [0, 3] }           // non-contiguous
  */
-export type SpriteStateRange = {
+export interface SpriteStateRange {
+  frames: number[];
   /** Animation speed when more than one frame. Defaults to 8. */
   fps?: number;
-} & (
-  | { start: number; count: number; frames?: never }
-  | { frames: number[]; start?: never; count?: never }
-);
+}
 
 export interface MascotSpriteSpec {
   cell: SpriteCell;

@@ -90,10 +90,7 @@ function SpriteMascot({
   const wrapperH = size;
 
   const row = spec.rows[kind] ?? 0;
-  const frames =
-    "frames" in stateRange && stateRange.frames !== undefined
-      ? stateRange.frames
-      : Array.from({ length: stateRange.count ?? 1 }, (_, i) => (stateRange.start ?? 0) + i);
+  const frames = stateRange.frames;
   const animate = frames.length > 1;
   const fps = stateRange.fps ?? 8;
   const dur = animate ? `${frames.length / fps}s` : "0s";

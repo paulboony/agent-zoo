@@ -51,10 +51,10 @@
       "coder": 5
     },
     "states": {
-      "idle":    { "start": 0, "count": 1 },
+      "idle":    { "frames": [0] },
       "running": { "frames": [0, 3], "fps": 6 },
       "waiting": { "frames": [4, 5] },
-      "error":   { "start": 8, "count": 1 }
+      "error":   { "frames": [8] }
     }
   }
 }

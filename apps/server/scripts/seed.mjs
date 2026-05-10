@@ -27,20 +27,55 @@ async function post(payload) {
   }
 }
 
+const ALPHA_CWD = "/Users/demo/projects/alpha";
+const ALPHA_TX = "/Users/demo/.claude/projects/alpha.jsonl";
+const BETA_CWD = "/Users/demo/projects/beta";
+const BETA_TX = "/Users/demo/.claude/projects/beta.jsonl";
+
+/**
+ * Dispatches a sub-agent the way superpowers actually does it:
+ * a parent PreToolUse for the Task tool whose tool_input.description
+ * carries the human-readable label, then a SubagentStart whose
+ * agent_id matches the parent's tool_use_id.
+ *
+ * The reducer correlates the two via tool_use_id and sets agent.label,
+ * which the UI then maps to a mascot kind via the label rule table.
+ */
+async function spawnSubagent({ id, description, subagent_type = "general-purpose" }) {
+  await post({
+    hook_event_name: "PreToolUse",
+    session_id: "seed-alpha",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
+    tool_name: "Task",
+    tool_input: { description, subagent_type, prompt: description },
+    tool_use_id: id,
+  });
+  await post({
+    hook_event_name: "SubagentStart",
+    session_id: "seed-alpha",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
+    agent_id: id,
+    agent_type: subagent_type,
+    agent_transcript_path: `/Users/demo/.claude/projects/${id}.jsonl`,
+  });
+}
+
 async function demo() {
   // Two sessions starting in parallel
   await post({
     hook_event_name: "SessionStart",
     session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
     source: "startup",
   });
   await post({
     hook_event_name: "SessionStart",
     session_id: "seed-beta",
-    cwd: "/Users/demo/projects/beta",
-    transcript_path: "/Users/demo/.claude/projects/beta.jsonl",
+    cwd: BETA_CWD,
+    transcript_path: BETA_TX,
     source: "startup",
   });
 
@@ -50,37 +85,35 @@ async function demo() {
   await post({
     hook_event_name: "PreToolUse",
     session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
     tool_name: "Bash",
     tool_input: { command: "pnpm test" },
     tool_use_id: "alpha-bash-1",
   });
 
-  await sleep(150);
+  await sleep(100);
 
-  // Alpha spawns a general-purpose sub-agent
-  await post({
-    hook_event_name: "SubagentStart",
-    session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
-    agent_id: "alpha-general-1",
-    agent_type: "general-purpose",
-    agent_transcript_path: "/Users/demo/.claude/projects/alpha-general.jsonl",
+  // Alpha spawns four sub-agents — one per label-rule mascot kind, all
+  // dispatched as `general-purpose` (matches real superpowers usage).
+  await spawnSubagent({
+    id: "alpha-reviewer-1",
+    description: "Final review of feature",
   });
-
-  await sleep(150);
-
-  // Alpha also spawns an explorer sub-agent (this one stays active)
-  await post({
-    hook_event_name: "SubagentStart",
-    session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
-    agent_id: "alpha-explorer-1",
-    agent_type: "Explore",
-    agent_transcript_path: "/Users/demo/.claude/projects/alpha-explorer.jsonl",
+  await sleep(80);
+  await spawnSubagent({
+    id: "alpha-explorer-1",
+    description: "Explore the codebase",
+  });
+  await sleep(80);
+  await spawnSubagent({
+    id: "alpha-coder-1",
+    description: "Implement Task 5",
+  });
+  await sleep(80);
+  await spawnSubagent({
+    id: "alpha-writer-1",
+    description: "Write notification spec",
   });
 
   await sleep(150);
@@ -89,30 +122,31 @@ async function demo() {
   await post({
     hook_event_name: "PermissionRequest",
     session_id: "seed-beta",
-    cwd: "/Users/demo/projects/beta",
-    transcript_path: "/Users/demo/.claude/projects/beta.jsonl",
+    cwd: BETA_CWD,
+    transcript_path: BETA_TX,
     message: "Allow Write to /etc/hosts?",
     title: "Permission needed",
   });
 
   await sleep(150);
 
-  // Alpha sub-agent finishes
+  // Reviewer sub-agent finishes (so the "Show ended" toggle has something
+  // to reveal). The other three stay active.
   await post({
     hook_event_name: "SubagentStop",
     session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
-    agent_id: "alpha-general-1",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
+    agent_id: "alpha-reviewer-1",
     agent_type: "general-purpose",
-    agent_transcript_path: "/Users/demo/.claude/projects/alpha-general.jsonl",
+    agent_transcript_path: "/Users/demo/.claude/projects/alpha-reviewer-1.jsonl",
   });
 
   await post({
     hook_event_name: "PostToolUse",
     session_id: "seed-alpha",
-    cwd: "/Users/demo/projects/alpha",
-    transcript_path: "/Users/demo/.claude/projects/alpha.jsonl",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
     tool_name: "Bash",
     tool_input: { command: "pnpm test" },
     tool_use_id: "alpha-bash-1",

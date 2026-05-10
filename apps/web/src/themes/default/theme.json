@@ -1,6 +1,6 @@
 {
   "id": "default",
-  "name": "Pixel Claude",
+  "name": "Clawd",
   "author": "agent-zoo",
   "tokens": {
     "--bg": "oklch(0.18 0.02 280)",

@@ -52,8 +52,8 @@
     },
     "states": {
       "idle":    { "start": 0, "count": 1 },
-      "running": { "start": 0, "count": 2, "fps": 6 },
-      "waiting": { "start": 0, "count": 1 },
+      "running": { "frames": [0, 3], "fps": 6 },
+      "waiting": { "frames": [4, 5] },
       "error":   { "start": 8, "count": 1 }
     }
   }

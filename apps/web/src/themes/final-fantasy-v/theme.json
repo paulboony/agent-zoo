@@ -44,14 +44,14 @@
     "rows": {
       "main": 0,
       "general": 0,
-      "explorer": 0,
+      "explorer": 8,
       "writer": 9,
-      "code-reviewer": 11,
-      "coder": 12
+      "code-reviewer": 10,
+      "coder": 11
     },
     "states": {
       "idle":    { "start": 0, "count": 1 },
-      "running": { "frames": [0, 3], "fps": 6 },
+      "running": { "frames": [0, 1], "fps": 6 },
       "waiting": { "start": 6, "count": 2, "fps": 3 },
       "error":   { "start": 10, "count": 1 }
     }

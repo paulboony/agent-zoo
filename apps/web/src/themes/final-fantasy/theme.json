@@ -52,7 +52,7 @@
     },
     "states": {
       "idle":    { "start": 0, "count": 1 },
-      "running": { "start": 2, "count": 2, "fps": 6 },
+      "running": { "start": 0, "count": 2, "fps": 6 },
       "waiting": { "start": 0, "count": 1 },
       "error":   { "start": 8, "count": 1 }
     }

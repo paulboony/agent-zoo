@@ -22,14 +22,21 @@ export interface SpritePadding {
   y?: number;
 }
 
-export interface SpriteStateRange {
-  /** Column index where this state's frames begin. */
-  start: number;
-  /** Number of frames; `1` means a static cell (no animation). */
-  count: number;
-  /** Animation speed when `count > 1`. Defaults to 8. */
+/**
+ * Frames for one mascot state. Either form is valid:
+ *
+ *   { start: 0, count: 2 }       // contiguous shortcut: cols 0, 1
+ *   { frames: [0, 3] }           // explicit, possibly non-contiguous
+ *
+ * `count: 1` and `frames: [N]` are both static (no animation).
+ */
+export type SpriteStateRange = {
+  /** Animation speed when more than one frame. Defaults to 8. */
   fps?: number;
-}
+} & (
+  | { start: number; count: number; frames?: never }
+  | { frames: number[]; start?: never; count?: never }
+);
 
 export interface MascotSpriteSpec {
   cell: SpriteCell;

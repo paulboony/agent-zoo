@@ -90,9 +90,18 @@ function SpriteMascot({
   const wrapperH = size;
 
   const row = spec.rows[kind] ?? 0;
-  const animate = stateRange.count > 1;
+  const frames =
+    "frames" in stateRange && stateRange.frames !== undefined
+      ? stateRange.frames
+      : Array.from({ length: stateRange.count ?? 1 }, (_, i) => (stateRange.start ?? 0) + i);
+  const animate = frames.length > 1;
   const fps = stateRange.fps ?? 8;
-  const dur = animate ? `${stateRange.count / fps}s` : "0s";
+  const dur = animate ? `${frames.length / fps}s` : "0s";
+
+  const frameVars: Record<string, number | string> = {};
+  frames.forEach((col, i) => {
+    frameVars[`--frame-${i}`] = col;
+  });
 
   return (
     <span
@@ -111,7 +120,7 @@ function SpriteMascot({
     >
       <span
         className="mascot-sprite"
-        data-animate={animate ? "true" : undefined}
+        data-animate={animate ? frames.length : undefined}
         style={
           {
             display: "block",
@@ -123,13 +132,12 @@ function SpriteMascot({
             backgroundRepeat: "no-repeat",
             imageRendering: "pixelated",
             "--row": row,
-            "--start": stateRange.start,
-            "--count": stateRange.count,
             "--stride-x": `${strideX}px`,
             "--stride-y": `${strideY}px`,
             "--pad-x": `${padX}px`,
             "--pad-y": `${padY}px`,
             "--dur": dur,
+            ...frameVars,
           } as React.CSSProperties
         }
       />

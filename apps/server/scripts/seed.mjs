@@ -94,11 +94,18 @@ async function demo() {
 
   await sleep(100);
 
-  // Alpha spawns four sub-agents — one per label-rule mascot kind, all
+  // Alpha spawns five sub-agents — one per label-rule mascot kind, all
   // dispatched as `general-purpose` (matches real superpowers usage).
+  // Two are reviewers: one ends quickly (test "Show ended" toggle), the
+  // other stays active so the reviewer mascot is visible by default.
   await spawnSubagent({
     id: "alpha-reviewer-1",
     description: "Final review of feature",
+  });
+  await sleep(80);
+  await spawnSubagent({
+    id: "alpha-reviewer-2",
+    description: "Spec review for notification settings",
   });
   await sleep(80);
   await spawnSubagent({

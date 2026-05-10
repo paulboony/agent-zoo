@@ -22,8 +22,9 @@ test.describe("agent-zoo happy path", () => {
     await alphaCard.click();
     await expect(page).toHaveURL(/\/sessions\/seed-alpha$/);
 
-    // alpha-explorer-1 stays active and is visible by default
+    // alpha-explorer-1 and alpha-reviewer-2 stay active and are visible by default
     await expect(page.getByText("alpha-explorer-1")).toBeVisible();
+    await expect(page.getByText("alpha-reviewer-2")).toBeVisible();
 
     // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
     // reveal it via the toggle before asserting visibility.

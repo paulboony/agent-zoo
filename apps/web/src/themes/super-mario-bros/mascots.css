@@ -1,0 +1,39 @@
+/* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized
+   wrapper; its child .mascot-sprite is the scaled inner element with the
+   background-image. The CSS variables --row, --frame-N, --dur, --stride-x,
+   --stride-y, --pad-x, --pad-y come from inline styles on .mascot-sprite.
+
+   Each animation frame is one stop in a keyframe with step-end timing —
+   the browser holds each value until the next keyframe, then snaps. Frame
+   columns can be non-contiguous (e.g. running might use cols 0 and 3). */
+
+.mascot-sprite {
+  background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1);
+  background-position-y: calc((var(--pad-y) + var(--row) * var(--stride-y)) * -1);
+}
+
+.mascot-sprite[data-animate="2"] { animation: sprite-2 var(--dur) step-end infinite; }
+.mascot-sprite[data-animate="3"] { animation: sprite-3 var(--dur) step-end infinite; }
+.mascot-sprite[data-animate="4"] { animation: sprite-4 var(--dur) step-end infinite; }
+
+@keyframes sprite-2 {
+  0%   { background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1); }
+  50%  { background-position-x: calc((var(--pad-x) + var(--frame-1) * var(--stride-x)) * -1); }
+}
+@keyframes sprite-3 {
+  0%      { background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1); }
+  33.33%  { background-position-x: calc((var(--pad-x) + var(--frame-1) * var(--stride-x)) * -1); }
+  66.66%  { background-position-x: calc((var(--pad-x) + var(--frame-2) * var(--stride-x)) * -1); }
+}
+@keyframes sprite-4 {
+  0%   { background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1); }
+  25%  { background-position-x: calc((var(--pad-x) + var(--frame-1) * var(--stride-x)) * -1); }
+  50%  { background-position-x: calc((var(--pad-x) + var(--frame-2) * var(--stride-x)) * -1); }
+  75%  { background-position-x: calc((var(--pad-x) + var(--frame-3) * var(--stride-x)) * -1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-sprite[data-animate] {
+    animation: none !important;
+  }
+}

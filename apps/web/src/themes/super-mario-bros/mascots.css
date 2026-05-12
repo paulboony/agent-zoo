@@ -1,3 +1,13 @@
+@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap");
+
+/* Pixel-art display font for headings — fits the NES Mario aesthetic.
+   Scoped to this theme via its mascots.css being live-replaced when the
+   theme switches. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Pixelify Sans", "Pixelify Sans Fallback", system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
 /* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized
    wrapper; its child .mascot-sprite is the scaled inner element with the
    background-image. The CSS variables --row, --frame-N, --dur, --stride-x,

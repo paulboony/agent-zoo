@@ -103,27 +103,67 @@ SVG presence check when `mascot_mode === "sprite"`.
 
 ## Step 4 — strip chroma key (only if needed)
 
-If Step 1 found a solid opaque background colour, convert *that exact
-colour* to alpha 0 with PIL. Targeting the exact tuple preserves any
-similar-shade pixels that belong to the character.
+First decide which kind of background the sheet has. Sample the
+non-transparent-pixel-count by colour using `Counter(img.getdata())`:
+
+- **Clean pixel art** (one or two unique opaque background colours
+  dominate, e.g. one colour with thousands of pixels) → exact-match
+  strip (4a).
+- **Screenshot / scaled / anti-aliased image** (many similar shades of
+  the background colour, no single value dominates) → tolerance-band
+  strip (4b).
+
+### 4a — exact-match (clean pixel art)
 
 ```bash
 python3 -c "
 from PIL import Image
 src = 'apps/web/src/themes/<id>/mascots/sprites.png'
-target = (R, G, B)  # the chroma-key colour
+target = (R, G, B)
 img = Image.open(src).convert('RGBA')
 n = sum(1 for r,g,b,a in img.getdata() if (r,g,b) == target and a > 0)
 img.putdata([(r,g,b,0) if (r,g,b) == target else (r,g,b,a)
              for r,g,b,a in img.getdata()])
 img.save(src)
-print(f'cleared {n} chroma-key pixels')
+print(f'cleared {n} px')
 "
 ```
 
+### 4b — tolerance band (anti-aliased / screenshot)
+
+```bash
+python3 -c "
+from PIL import Image
+src = 'apps/web/src/themes/<id>/mascots/sprites.png'
+targets = [(R1, G1, B1), (R2, G2, B2)]   # one or more; sheet can mix
+threshold_sq = 60 * 60                   # ~radius 60 in RGB space
+img = Image.open(src).convert('RGBA')
+new = []
+n = 0
+for r, g, b, a in img.getdata():
+    keep = a
+    if a > 0:
+        for tr, tg, tb in targets:
+            if (r-tr)**2 + (g-tg)**2 + (b-tb)**2 < threshold_sq:
+                keep = 0
+                n += 1
+                break
+    new.append((r, g, b, keep))
+img.putdata(new)
+img.save(src)
+print(f'cleared {n} px')
+"
+```
+
+Tuning: start at `threshold = 60`. Bump higher if anti-aliased edges
+still ring around the character, lower if character pixels start
+disappearing. Verify visually in the preview.
+
 Common chroma keys seen so far:
-- `(0, 136, 255)` — Final Fantasy V sheet
-- `(255, 5, 238)` — Final Fantasy (FF1) sheet
+- `(0, 136, 255)` — Final Fantasy V sheet (exact-match)
+- `(255, 5, 238)` — Final Fantasy (FF1) sheet (exact-match)
+- `(144, 144, 255)` blue sky + `(0, 255, 0)` green gap — Super Mario
+  Bros. sheet (tolerance band, both colours together)
 
 ## Step 5 — verify
 

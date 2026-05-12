@@ -53,8 +53,8 @@
     "states": {
       "idle":    { "frames": [0] },
       "running": { "frames": [1, 2, 3], "fps": 6 },
-      "waiting": { "frames": [4] },
-      "error":   { "frames": [5] }
+      "waiting": { "frames": [6] },
+      "error":   { "frames": [6] }
     }
   }
 }

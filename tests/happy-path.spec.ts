@@ -78,6 +78,12 @@ test.describe("agent-zoo happy path", () => {
     await page.getByTestId("theme-option-final-fantasy").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy");
     await expect(page.getByTestId("ff1-agent-card").first()).toBeVisible();
+
+    // Super Mario Bros. ships an SMB1-HUD-style card.
+    await page.getByTestId("theme-picker").click();
+    await page.getByTestId("theme-option-super-mario-bros").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "super-mario-bros");
+    await expect(page.getByTestId("smb-agent-card").first()).toBeVisible();
   });
 
   test("dashboard landing surfaces attention list + running chips", async ({ page }) => {

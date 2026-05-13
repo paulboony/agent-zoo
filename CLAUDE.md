@@ -42,7 +42,7 @@ missed it.
 
 | Goal | File |
 |---|---|
-| Add an `AgentKind` | `packages/shared/src/state.ts` (union) + theme `mascots/<kind>.svg` for each SVG theme + `rows.<kind>` in each sprite theme + `validate.ts` REQUIRED_KINDS + `registry.ts` KIND_FILES |
+| Add an `AgentKind` | `packages/shared/src/state.ts` (union) + theme `mascots/<kind>.svg` for each SVG theme + `rows.<kind>` in each sprite theme + `validate.ts` REQUIRED_KINDS + `registry.ts` KIND_FILES + optionally a rule in `lib/agent-kind.ts` LABEL_RULES |
 | Add a label → mascot rule | `apps/web/src/lib/agent-kind.ts` (LABEL_RULES) |
 | Add a notification event | `use-notifications.ts` (PREF_KEYS + DEFAULT_PREFS + dispatchNotifications) + `notifications-section.tsx` EVENTS + spec types |
 | Add a theme | New folder under `apps/web/src/themes/<id>/` with `theme.json`, `mascots.css`, `preview.png`, `mascots/*.svg` for SVG mode or `mascots/sprites.png` for sprite mode |
@@ -63,9 +63,8 @@ missed it.
   `sprite-4`) — `<Mascot>` does the math.
 - UI mascot kind is resolved by `resolveDisplayKind(agent)` in
   `apps/web/src/lib/agent-kind.ts`. Order: `main` → label regex match →
-  server-resolved `agent.kind`. Label is the parent's Task
-  `tool_input.description`, correlated by `tool_use_id` ==
-  `subagent.agent_id` in `reducer.ts`.
+  `"general"`. Label is the parent's Task `tool_input.description`,
+  correlated by `tool_use_id` == `subagent.agent_id` in `reducer.ts`.
 
 ## Notifications
 
@@ -105,8 +104,10 @@ label-rule mascot kind plus an ended reviewer behind "Show ended".
 - Use `git -C <path>` for git operations against other worktrees; never
   `cd <path> && git ...` (hard-coded permission prompt).
 - `agent_type` is the raw Claude Code subagent type string (e.g.
-  `"general-purpose"`, `"Explore"`). `kind` is the internal classification
-  used by mascots. The UI prefers `agent.label` (description) over both.
+  `"general-purpose"`, `"Explore"`). The UI mascot kind is derived
+  client-side from `agent.label` via `resolveDisplayKind` — see
+  `apps/web/src/lib/agent-kind.ts`. `agent.label` (description) is
+  preferred for display text too.
 - `SubagentStop` sets `agent.status = "ended"` (not `"idle"` — a
   prior fix). Ended sub-agents are hidden behind a toggle in
   `SubAgentSection`.

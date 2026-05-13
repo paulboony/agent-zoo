@@ -26,6 +26,7 @@ export function createCircularBuffer<T>(capacity: number): CircularBuffer<T> {
 
 export interface PendingSubagent {
   description: string;
+  prompt?: string;
   subagent_type: string;
 }
 

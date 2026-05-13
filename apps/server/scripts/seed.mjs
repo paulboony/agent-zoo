@@ -41,14 +41,14 @@ const BETA_TX = "/Users/demo/.claude/projects/beta.jsonl";
  * The reducer correlates the two via tool_use_id and sets agent.label,
  * which the UI then maps to a mascot kind via the label rule table.
  */
-async function spawnSubagent({ id, description, subagent_type = "general-purpose" }) {
+async function spawnSubagent({ id, description, prompt, subagent_type = "general-purpose" }) {
   await post({
     hook_event_name: "PreToolUse",
     session_id: "seed-alpha",
     cwd: ALPHA_CWD,
     transcript_path: ALPHA_TX,
     tool_name: "Task",
-    tool_input: { description, subagent_type, prompt: description },
+    tool_input: { description, subagent_type, prompt: prompt ?? description },
     tool_use_id: id,
   });
   await post({
@@ -101,26 +101,36 @@ async function demo() {
   await spawnSubagent({
     id: "alpha-reviewer-1",
     description: "Final review of feature",
+    prompt:
+      "Do a final review of the feature branch `feat/notifications`. Check the diff against master for unused exports, missing aria labels on the new toggle, and whether the localStorage keys match the spec. Flag anything that should block merge.",
   });
   await sleep(80);
   await spawnSubagent({
     id: "alpha-reviewer-2",
     description: "Spec review for notification settings",
+    prompt:
+      "Read docs/specs/notifications-settings.md and audit it against the current implementation in notifications-section.tsx and use-notifications.ts. List any drift between spec and code, and call out any behaviours that the spec doesn't cover (focus suppression, requireInteraction, edge-triggering).",
   });
   await sleep(80);
   await spawnSubagent({
     id: "alpha-explorer-1",
     description: "Explore the codebase",
+    prompt:
+      "Investigate how the notification preferences are persisted across the codebase. Look at use-notifications.ts, notifications-section.tsx, and the underlying localStorage keys. Report which keys are read and written, and whether the master toggle gates per-event prefs.",
   });
   await sleep(80);
   await spawnSubagent({
     id: "alpha-coder-1",
     description: "Implement Task 5",
+    prompt:
+      "Implement the subagent_spawn notification event end-to-end: extend the prefs map, add the dispatch path in use-notifications.ts, wire the toggle in notifications-section.tsx, and update the e2e test.",
   });
   await sleep(80);
   await spawnSubagent({
     id: "alpha-writer-1",
     description: "Write notification spec",
+    prompt:
+      "Draft a spec for the notifications settings page. Cover master toggle, per-event switches, focus suppression, and the requireInteraction policy for waiting_for_human and session_error.",
   });
 
   await sleep(150);

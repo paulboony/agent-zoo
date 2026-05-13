@@ -26,6 +26,12 @@ test.describe("agent-zoo happy path", () => {
     await expect(page.getByText("alpha-explorer-1")).toBeVisible();
     await expect(page.getByText("alpha-reviewer-2")).toBeVisible();
 
+    // Sub-agent cards surface the Task tool's `prompt` body (line-clamped
+    // above the toolcall). Seed-side prompts are several sentences long.
+    await expect(
+      page.getByText(/Investigate how the notification preferences are persisted/i),
+    ).toBeVisible();
+
     // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
     // reveal it via the toggle before asserting visibility.
     await page.getByRole("button", { name: /show ended/i }).click();

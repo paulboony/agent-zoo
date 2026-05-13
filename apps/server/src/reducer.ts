@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent-zoo/shared";
-import { resolveAgentKind, rollupSessionStatus } from "@agent-zoo/shared";
+import { rollupSessionStatus } from "@agent-zoo/shared";
 import type { Store } from "./state.js";
 
 function captureTaskDescription(
@@ -13,26 +13,34 @@ function captureTaskDescription(
   const obj = toolInput as Record<string, unknown>;
   const description = typeof obj.description === "string" ? obj.description : undefined;
   if (!description) return;
+  const prompt = typeof obj.prompt === "string" ? obj.prompt : undefined;
   const subagent_type = typeof obj.subagent_type === "string" ? obj.subagent_type : "";
   let perSession = store.pending_subagents.get(sessionId);
   if (!perSession) {
     perSession = new Map();
     store.pending_subagents.set(sessionId, perSession);
   }
-  perSession.set(toolUseId, { description, subagent_type });
+  perSession.set(toolUseId, {
+    description,
+    ...(prompt !== undefined ? { prompt } : {}),
+    subagent_type,
+  });
 }
 
-function consumeSubagentLabel(
+function consumePendingSubagent(
   store: Store,
   sessionId: string,
   agentId: string,
-): string | undefined {
+): { description: string; prompt?: string } | undefined {
   const perSession = store.pending_subagents.get(sessionId);
   if (!perSession) return undefined;
   const pending = perSession.get(agentId);
   if (!pending) return undefined;
   perSession.delete(agentId);
-  return pending.description;
+  return {
+    description: pending.description,
+    ...(pending.prompt !== undefined ? { prompt: pending.prompt } : {}),
+  };
 }
 
 export function reduce(store: Store, env: HookEnvelope): SessionState | null {
@@ -57,7 +65,6 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
         : undefined;
     agent = {
       id: agentId,
-      kind: agentId === "main" ? "main" : resolveAgentKind(agentType),
       ...(agentType !== undefined ? { agent_type: agentType } : {}),
       status: "running",
       started_at: received_at,
@@ -69,8 +76,11 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
     // ordering is PreToolUse(Task) → SubagentStart, so by the time we reach
     // here the description is already in the pending buffer (if there was one).
     if (payload.hook_event_name === "SubagentStart") {
-      const label = consumeSubagentLabel(store, sessionId, agentId);
-      if (label !== undefined) agent.label = label;
+      const pending = consumePendingSubagent(store, sessionId, agentId);
+      if (pending !== undefined) {
+        agent.label = pending.description;
+        if (pending.prompt !== undefined) agent.prompt = pending.prompt;
+      }
     }
   } else {
     agent = { ...existingAgent };

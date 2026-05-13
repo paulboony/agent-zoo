@@ -26,8 +26,8 @@ const LABEL_RULES: { pattern: RegExp; kind: AgentKind }[] = [
 
 /**
  * Pick the mascot kind to display for an agent. Tries the label rules
- * first; falls back to the server-resolved `agent.kind` (which itself
- * came from `agent_type`).
+ * first; falls back to `"general"` when no label matches (which is the
+ * common case, since most sub-agents are `general-purpose`).
  */
 export function resolveDisplayKind(agent: AgentState): AgentKind {
   if (agent.id === "main") return "main";
@@ -36,5 +36,5 @@ export function resolveDisplayKind(agent: AgentState): AgentKind {
       if (rule.pattern.test(agent.label)) return rule.kind;
     }
   }
-  return agent.kind;
+  return "general";
 }

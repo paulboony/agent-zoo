@@ -37,10 +37,10 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
       <Mascot kind={resolveDisplayKind(agent)} state={statusToMascotState(agent.status)} size={size} />
       <div className="flex flex-col items-center gap-0.5">
         <span className="font-medium text-sm">
-          {agent.label ?? agent.agent_type ?? agent.kind}
+          {agent.label ?? agent.agent_type ?? agent.id}
         </span>
-        {agent.label && (agent.agent_type ?? agent.kind) && (
-          <span className="text-fg/50 text-xs">{agent.agent_type ?? agent.kind}</span>
+        {agent.label && agent.agent_type && (
+          <span className="text-fg/50 text-xs">{agent.agent_type}</span>
         )}
       </div>
       <Tooltip>
@@ -49,6 +49,20 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
         </TooltipTrigger>
         <TooltipContent className="break-all">{agent.id}</TooltipContent>
       </Tooltip>
+      {agent.prompt && (
+        <div className="w-full">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="line-clamp-2 w-full whitespace-pre-wrap break-words text-fg/60 text-xs italic">
+                {agent.prompt}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md whitespace-pre-wrap break-words">
+              {agent.prompt}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
       {toolLabel && (
         <div className="flex w-full justify-center">
           <Tooltip>

@@ -7,12 +7,12 @@ export type AgentKind = "main" | "code-reviewer" | "explorer" | "writer" | "code
 export interface AgentState {
   /** SubAgentFields.agent_id from SubagentStart/Stop; "main" for the parent agent. */
   id: string;
-  /** Internal classification derived from `agent_type` via `resolveAgentKind`. */
-  kind: AgentKind;
   /** `agent_type` from SubAgentFields (e.g. "general-purpose", "code-reviewer"). */
   agent_type?: string;
   /** Human description from the parent's Task tool invocation (`tool_input.description`). */
   label?: string;
+  /** Full prompt body from the parent's Task tool invocation (`tool_input.prompt`). */
+  prompt?: string;
   /** Current state — derived from the most recent transition event for this agent. */
   status: AgentStatus;
   /** Tool name from the latest PreToolUse; cleared on PostToolUse. */
@@ -58,19 +58,6 @@ export interface SessionState {
   last_event_at: string;
   /** Per-agent state, keyed by `agent.id`. */
   agents: Record<string, AgentState>;
-}
-
-const AGENT_KIND_MAP: Record<string, AgentKind> = {
-  "code-reviewer": "code-reviewer",
-  Explore: "explorer",
-  explorer: "explorer",
-  writer: "writer",
-  "doc-writer": "writer",
-};
-
-export function resolveAgentKind(agentType: string | undefined): AgentKind {
-  if (!agentType) return "main";
-  return AGENT_KIND_MAP[agentType] ?? "general";
 }
 
 const STATUS_RANK: Record<SessionStatus, number> = {

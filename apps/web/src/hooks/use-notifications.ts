@@ -1,3 +1,4 @@
+import { resolveDisplayKind } from "@/lib/agent-kind.js";
 import type { SessionTransition } from "@/lib/store.js";
 import { useStore } from "@/lib/store.js";
 import type { SessionState } from "@agent-zoo/shared";
@@ -159,7 +160,7 @@ function dispatchNotifications(t: SessionTransition): void {
       const agent = session.agents[agentId];
       if (!agent) continue;
       fire(session, {
-        title: `New ${agent.kind} agent`,
+        title: `New ${resolveDisplayKind(agent)} agent`,
         body: session.cwd_basename,
         tag: `${session.id}:${agentId}`,
       });

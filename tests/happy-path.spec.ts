@@ -65,6 +65,22 @@ test.describe("agent-zoo happy path", () => {
     expect(defaultHtml).not.toBe(ffvHtml);
   });
 
+  test("dashboard landing surfaces attention list + running chips", async ({ page }) => {
+    await page.goto("/");
+
+    // The seed leaves seed-beta in waiting_for_human with a real reason,
+    // and seed-alpha in running. Those drive the two must-have sections.
+    const attentionRow = page.getByTestId("dash-attention-seed-beta");
+    await expect(attentionRow).toBeVisible();
+    await expect(attentionRow.getByText(/Allow Write to \/etc\/hosts\?/)).toBeVisible();
+
+    await expect(page.getByTestId("dash-running-seed-alpha")).toBeVisible();
+
+    // Clicking the attention row opens the session detail.
+    await attentionRow.click();
+    await expect(page).toHaveURL(/\/sessions\/seed-beta$/);
+  });
+
   test("settings page exposes the five notification switches", async ({ page }) => {
     await page.goto("/settings");
 

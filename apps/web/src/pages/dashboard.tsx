@@ -1,4 +1,4 @@
-import { EmptyState } from "@/components/empty-state.js";
+import { DashboardOverview } from "@/components/dashboard-overview.js";
 import { Settings } from "@/pages/settings.js";
 import { NotificationToggle } from "@/components/notification-toggle.js";
 import { SessionCard } from "@/components/session-card.js";
@@ -128,7 +128,7 @@ export function Dashboard() {
           ) : selected ? (
             <SessionDetail session={selected} />
           ) : (
-            <EmptyState message="Select a session on the left." />
+            <DashboardOverview />
           )}
         </div>
       </SidebarInset>

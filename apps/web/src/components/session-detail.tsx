@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge.js";
 import { Button } from "@/components/ui/button.js";
 import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
@@ -8,13 +7,33 @@ import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/agent-kind.js";
 import { useActiveTheme } from "@/lib-theme/context.js";
 import { formatDuration } from "@/lib/time.js";
-import type { AgentState, SessionState } from "@agent-zoo/shared";
+import type { AgentState, AgentStatus, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
-import { Clock, Code, Cpu } from "lucide-react";
 import { useState } from "react";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
+
+const STATUS_GLYPH: Record<AgentStatus, string> = {
+  running: "●",
+  waiting_for_human: "◐",
+  idle: "○",
+  error: "✗",
+  ended: "⊘",
+};
+
+/**
+ * Map AgentStatus → the suffix used in `--status-<x>` CSS variables.
+ * Most statuses map to themselves; `waiting_for_human` → `waiting`
+ * because the CSS token is `--status-waiting` (not `--status-waiting_for_human`).
+ */
+const STATUS_VAR: Record<AgentStatus, string> = {
+  running: "running",
+  waiting_for_human: "waiting",
+  idle: "idle",
+  error: "error",
+  ended: "ended",
+};
 
 function timeAgo(iso: string, now: number): string {
   const t = Date.parse(iso);
@@ -56,36 +75,69 @@ function DefaultAgentCard({
   mascotState,
   toolLabel,
   toolSummary,
-  size,
 }: AgentCardProps) {
   const now = useNow();
-  const toolText = toolLabel ? `${toolLabel}${toolSummary ? `: ${toolSummary}` : ""}` : "";
+  const name = agent.label ?? agent.agent_type ?? agent.id;
+  const showId = agent.id !== "main";
+  const toolCall = toolLabel ? `${toolLabel}(${toolSummary ?? ""})` : null;
+
+  const statParts: string[] = [];
+  statParts.push(
+    `${agent.tool_calls_count} ${agent.tool_calls_count === 1 ? "call" : "calls"}`,
+  );
+  if (agent.error_count > 0) {
+    statParts.push(
+      `${agent.error_count} ${agent.error_count === 1 ? "error" : "errors"}`,
+    );
+  }
+  if (agent.model) statParts.push(agent.model);
+  statParts.push(timeAgo(agent.last_event_at, now));
+  const stats = statParts.join(" · ");
 
   return (
-    <Card className="relative w-full items-center gap-1.5 rounded-md p-3">
-      <div className="absolute top-2 right-2">
-        <StatusBadge status={agent.status} />
-      </div>
-      <Mascot kind={displayKind} state={mascotState} size={size} />
-      <div className="flex flex-col items-center gap-0.5">
-        <span className="font-medium text-sm">
-          {agent.label ?? agent.agent_type ?? agent.id}
-        </span>
-        {agent.label && agent.agent_type && (
-          <span className="text-fg/50 text-xs">{agent.agent_type}</span>
+    <Card className="flex w-full flex-row items-start gap-3 rounded-md px-3 py-2.5">
+      <Mascot kind={displayKind} state={mascotState} size={40} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span
+            className="shrink-0 leading-none"
+            style={{ color: `var(--status-${STATUS_VAR[agent.status]})` }}
+            aria-label={agent.status}
+            title={agent.status}
+          >
+            {STATUS_GLYPH[agent.status]}
+          </span>
+          <span className="min-w-0 flex-1 truncate font-medium text-sm">{name}</span>
+        </div>
+        {(agent.agent_type || showId) && (
+          <div className="flex min-w-0 items-baseline gap-1 text-fg/50 text-xs">
+            {agent.agent_type && <span className="truncate">{agent.agent_type}</span>}
+            {agent.agent_type && showId && <span className="shrink-0">·</span>}
+            {showId && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block max-w-[12ch] truncate font-mono">{agent.id}</span>
+                </TooltipTrigger>
+                <TooltipContent className="break-all">{agent.id}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         )}
-      </div>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="max-w-32 truncate text-fg/50 text-xs">{agent.id}</span>
-        </TooltipTrigger>
-        <TooltipContent className="break-all">{agent.id}</TooltipContent>
-      </Tooltip>
-      {agent.prompt && (
-        <div className="w-full">
+        {toolCall && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <p className="line-clamp-2 w-full whitespace-pre-wrap break-words text-fg/60 text-xs italic">
+              <span className="block truncate font-mono text-fg/80 text-xs">
+                {toolCall}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="break-all">{toolCall}</TooltipContent>
+          </Tooltip>
+        )}
+        {agent.prompt && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="line-clamp-2 whitespace-pre-wrap break-words text-fg/60 text-xs italic">
+                <span className="mr-1 text-fg/40">›</span>
                 {agent.prompt}
               </p>
             </TooltipTrigger>
@@ -93,36 +145,8 @@ function DefaultAgentCard({
               {agent.prompt}
             </TooltipContent>
           </Tooltip>
-        </div>
-      )}
-      {toolLabel && (
-        <div className="flex w-full justify-center">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="outline" className="max-w-full">
-                <Code />
-                <span className="truncate">{toolText}</span>
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent className="break-all">{toolText}</TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-      <div className="flex flex-wrap justify-center gap-1">
-        {agent.model && (
-          <Badge variant="outline" className="max-w-40 font-mono">
-            <Cpu />
-            <span className="truncate">{agent.model}</span>
-          </Badge>
         )}
-        <Badge variant="outline">
-          <Clock />
-          {timeAgo(agent.last_event_at, now)}
-        </Badge>
-        <Badge variant="outline">
-          {agent.tool_calls_count} {agent.tool_calls_count === 1 ? "call" : "calls"}
-          {agent.error_count > 0 ? ` · ${agent.error_count} errors` : ""}
-        </Badge>
+        <div className="truncate font-mono text-fg/50 text-xs">{stats}</div>
       </div>
     </Card>
   );

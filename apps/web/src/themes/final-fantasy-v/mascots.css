@@ -1,12 +1,73 @@
-/* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized
-   wrapper; its child .mascot-sprite is the scaled inner element with the
-   background-image. The CSS variables --row, --frame-N, --dur, --stride-x,
-   --stride-y, --pad-x, --pad-y come from inline styles on .mascot-sprite.
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap");
 
-   Each animation frame is one stop in a keyframe with step-end timing —
-   the browser holds each value until the next keyframe, then snaps. Frame
-   columns can be non-contiguous (e.g. running might use cols 0 and 3). */
+/* Crystal Legacy type pairing — Space Grotesk for headings, Inter for
+   body, JetBrains Mono for labels/badges/stats. */
+body {
+  font-family: "Inter", system-ui, sans-serif;
+}
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-slot="badge"] {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+/* 16-bit grid: hard 90° corners on every element. */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+/* Window containers (cards + sidebar): signature top-to-bottom navy
+   gradient plus the triple-layered window border — 2px white outer,
+   1px black inner line via inset shadow, 1px white innermost. */
+[data-slot="card"],
+[data-slot="sidebar"][data-sidebar="sidebar"] {
+  background: linear-gradient(to bottom, #000080, #000040) !important;
+  color: #ffffff !important;
+}
+
+[data-slot="card"] {
+  border: 2px solid #ffffff !important;
+  box-shadow:
+    inset 0 0 0 1px #000000,
+    inset 0 0 0 2px #ffffff !important;
+}
+
+/* White text on the navy gradient gets a 1px hard drop shadow per spec.
+   Excludes inner badge content so chips keep their own contrast. */
+[data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *),
+[data-slot="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
+  text-shadow: 1px 1px 0 #000000;
+}
+
+/* Status chips: gold border per the Crystal Legacy chip spec, with
+   per-state text colours chosen for contrast against the bg. */
+[data-testid^="status-"] {
+  border-color: #e9c349 !important;
+}
+[data-testid="status-running"],
+[data-testid="status-ended"] {
+  color: #ffffff;
+}
+[data-testid="status-waiting"],
+[data-testid="status-waiting_for_human"],
+[data-testid="status-idle"],
+[data-testid="status-error"] {
+  color: #1a1a1a;
+}
+
+/* Sprite-mode rules: .mascot[data-render="sprite"] is the cell-sized
+   wrapper, .mascot-sprite is the scaled inner element with the
+   background-image. Variables --row, --frame-N, --dur, --stride-x,
+   --stride-y, --pad-x, --pad-y come from inline styles. */
 .mascot-sprite {
   background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1);
   background-position-y: calc((var(--pad-y) + var(--row) * var(--stride-y)) * -1);

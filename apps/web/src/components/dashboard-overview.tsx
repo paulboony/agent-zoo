@@ -1,9 +1,10 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { pickHeroAgent } from "@/lib/session-hero.js";
 import { useStore } from "@/lib/store.js";
 import { formatDuration } from "@/lib/time.js";
-import type { AgentState, SessionState } from "@agent-zoo/shared";
+import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,10 +13,6 @@ import { StatusBadge } from "./status-badge.js";
 
 function elapsed(iso: string, now: number): string {
   return formatDuration(now - Date.parse(iso));
-}
-
-function getMainAgent(session: SessionState): AgentState | null {
-  return session.agents.main ?? Object.values(session.agents)[0] ?? null;
 }
 
 /**
@@ -45,7 +42,7 @@ function attentionReason(session: SessionState): string | undefined {
 function AttentionRow({ session }: { session: SessionState }) {
   const navigate = useNavigate();
   const now = useNow();
-  const main = getMainAgent(session);
+  const main = pickHeroAgent(session);
   const kind = main ? resolveDisplayKind(main) : "main";
   const reason = attentionReason(session);
   return (
@@ -84,7 +81,7 @@ function AttentionRow({ session }: { session: SessionState }) {
 function ActiveChip({ session }: { session: SessionState }) {
   const navigate = useNavigate();
   const now = useNow();
-  const main = getMainAgent(session);
+  const main = pickHeroAgent(session);
   const kind = main ? resolveDisplayKind(main) : "main";
   return (
     <button

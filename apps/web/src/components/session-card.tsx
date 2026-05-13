@@ -2,21 +2,14 @@ import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { pickHeroAgent } from "@/lib/session-hero.js";
 import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";
-import { statusUrgency } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
 interface Props {
   session: SessionState;
-}
-
-function pickHeroAgent(session: SessionState) {
-  const agents = Object.values(session.agents);
-  if (agents.length === 0) return null;
-  const ranked = agents.slice().sort((a, b) => statusUrgency(b.status) - statusUrgency(a.status));
-  return ranked[0] ?? null;
 }
 
 function elapsed(fromIso: string, now: number): string {

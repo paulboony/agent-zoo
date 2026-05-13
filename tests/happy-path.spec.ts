@@ -76,6 +76,10 @@ test.describe("agent-zoo happy path", () => {
 
     await expect(page.getByTestId("dash-running-seed-alpha")).toBeVisible();
 
+    // Both sections render with their headers + counts.
+    await expect(page.getByRole("heading", { name: /Needs attention/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Running/i })).toBeVisible();
+
     // Clicking the attention row opens the session detail.
     await attentionRow.click();
     await expect(page).toHaveURL(/\/sessions\/seed-beta$/);

@@ -14,25 +14,19 @@ import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
-const STATUS_GLYPH: Record<AgentStatus, string> = {
-  running: "●",
-  waiting_for_human: "◐",
-  idle: "○",
-  error: "✗",
-  ended: "⊘",
-};
-
 /**
- * Map AgentStatus → the suffix used in `--status-<x>` CSS variables.
- * Most statuses map to themselves; `waiting_for_human` → `waiting`
- * because the CSS token is `--status-waiting` (not `--status-waiting_for_human`).
+ * Per-status visual info for the agent card:
+ *  - `glyph`: shape varies so the status reads without colour.
+ *  - `varName`: suffix for the matching `--status-<x>` CSS variable
+ *    (`waiting_for_human` → `waiting`, because the token is
+ *    `--status-waiting`).
  */
-const STATUS_VAR: Record<AgentStatus, string> = {
-  running: "running",
-  waiting_for_human: "waiting",
-  idle: "idle",
-  error: "error",
-  ended: "ended",
+const STATUS_INFO: Record<AgentStatus, { glyph: string; varName: string }> = {
+  running: { glyph: "●", varName: "running" },
+  waiting_for_human: { glyph: "◐", varName: "waiting" },
+  idle: { glyph: "○", varName: "idle" },
+  error: { glyph: "✗", varName: "error" },
+  ended: { glyph: "⊘", varName: "ended" },
 };
 
 function timeAgo(iso: string, now: number): string {
@@ -80,6 +74,7 @@ function DefaultAgentCard({
   const name = agent.label ?? agent.agent_type ?? agent.id;
   const showId = agent.id !== "main";
   const toolCall = toolLabel ? `${toolLabel}(${toolSummary ?? ""})` : null;
+  const statusInfo = STATUS_INFO[agent.status];
 
   const statParts: string[] = [];
   statParts.push(
@@ -99,14 +94,19 @@ function DefaultAgentCard({
       <Mascot kind={displayKind} state={mascotState} size={40} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span
-            className="shrink-0 leading-none"
-            style={{ color: `var(--status-${STATUS_VAR[agent.status]})` }}
-            aria-label={agent.status}
-            title={agent.status}
-          >
-            {STATUS_GLYPH[agent.status]}
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className="shrink-0 leading-none"
+                style={{ color: `var(--status-${statusInfo.varName})` }}
+                role="img"
+                aria-label={agent.status}
+              >
+                {statusInfo.glyph}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{agent.status}</TooltipContent>
+          </Tooltip>
           <span className="min-w-0 flex-1 truncate font-medium text-sm">{name}</span>
         </div>
         {(agent.agent_type || showId) && (
@@ -137,7 +137,7 @@ function DefaultAgentCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <p className="line-clamp-2 whitespace-pre-wrap break-words text-fg/60 text-xs italic">
-                <span className="mr-1 text-fg/40">›</span>
+                <span aria-hidden="true" className="mr-1 select-none text-fg/40">›</span>
                 {agent.prompt}
               </p>
             </TooltipTrigger>

@@ -79,7 +79,7 @@ export function SessionCard({ session }: Props) {
           <span className="truncate text-fg/80 text-xs">{session.current_activity}</span>
         )}
         {session.waiting_reason && (
-          <span className="truncate text-status-waiting text-xs">{session.waiting_reason}</span>
+          <span className="truncate text-fg/80 text-xs">{session.waiting_reason}</span>
         )}
       </div>
     </>

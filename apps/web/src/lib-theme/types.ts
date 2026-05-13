@@ -3,7 +3,7 @@ import type { AgentKind } from "@agent-zoo/shared";
 export type ThemeTokens = Record<string, string>;
 
 export type MascotMode = "svg" | "sprite";
-export type MascotState = "running" | "waiting" | "idle" | "error";
+export type MascotState = "running" | "waiting" | "idle" | "error" | "ended";
 
 export interface SpriteCell {
   width: number;

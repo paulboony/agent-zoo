@@ -2,7 +2,7 @@ import { useActiveTheme } from "@/lib-theme/context.js";
 import type { Theme } from "@/lib-theme/types.js";
 import type { AgentKind, AgentStatus } from "@agent-zoo/shared";
 
-export type MascotState = "running" | "waiting" | "idle" | "error";
+export type MascotState = "running" | "waiting" | "idle" | "error" | "ended";
 
 export function statusToMascotState(status: AgentStatus): MascotState {
   switch (status) {
@@ -12,8 +12,9 @@ export function statusToMascotState(status: AgentStatus): MascotState {
       return "waiting";
     case "error":
       return "error";
-    case "idle":
     case "ended":
+      return "ended";
+    case "idle":
       return "idle";
   }
 }
@@ -74,7 +75,9 @@ function SpriteMascot({
   const spec = theme.mascotSprite;
   const url = theme.mascotSpriteUrl;
   if (!spec || !url) return null;
-  const stateRange = spec.states[state];
+  // States besides the four core ones (notably "ended") are optional in
+  // theme specs; fall back to idle so existing themes don't need migration.
+  const stateRange = spec.states[state] ?? spec.states.idle;
 
   const cellW = spec.cell.width;
   const cellH = spec.cell.height;

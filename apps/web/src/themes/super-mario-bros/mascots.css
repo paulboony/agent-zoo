@@ -1,11 +1,49 @@
-@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap");
 
-/* Pixel-art display font for headings — fits the NES Mario aesthetic.
-   Scoped to this theme via its mascots.css being live-replaced when the
-   theme switches. */
+/* 8-Bit Executive type pairing — Space Grotesk for headings/labels
+   (geometric, pixel-adjacent), Hanken Grotesk for body (legible).
+   Scoped to this theme since mascots.css is live-replaced on switch. */
+body {
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+}
+
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Pixelify Sans", "Pixelify Sans Fallback", system-ui, sans-serif;
-  letter-spacing: 0.01em;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Per-status text colours. Backgrounds come from --status-* tokens via
+   the StatusBadge component; text-fg (the global foreground) doesn't
+   read well on the saturated running/error backgrounds. */
+/* 8-bit / Retro-Brutalism: sharp corners everywhere. The theme's
+   mascots.css is live-replaced on switch, so this only affects the
+   page while Super Mario Bros. is active. */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+/* Level 1 "Block" treatment: cards get a 2px hard border + an offset
+   solid drop shadow, no blur. */
+[data-slot="card"] {
+  border-width: 2px !important;
+  border-color: #1a1a1a !important;
+  box-shadow: 4px 4px 0 0 #cccccc !important;
+}
+
+[data-testid^="status-"] {
+  border-color: #1a1a1a !important;
+}
+[data-testid="status-running"],
+[data-testid="status-error"],
+[data-testid="status-ended"] {
+  color: #ffffff;
+}
+[data-testid="status-idle"],
+[data-testid="status-waiting_for_human"] {
+  color: #1a1a1a;
 }
 
 /* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized

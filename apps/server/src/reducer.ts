@@ -90,10 +90,15 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   applyTransition(agent, session, payload);
   session.agents[agentId] = agent;
 
-  // Stash Task tool descriptions under their tool_use_id so the eventual
-  // SubagentStart can pick them up. agent_id == tool_use_id for Task-spawned
-  // sub-agents.
-  if (payload.hook_event_name === "PreToolUse" && payload.tool_name === "Task") {
+  // Stash sub-agent dispatch metadata under tool_use_id so the eventual
+  // SubagentStart can pick it up. agent_id == tool_use_id for Task-spawned
+  // sub-agents. Claude Code dispatches sub-agents via either the `Task`
+  // tool (Claude Code SDK) or the `Agent` tool (Claude API tool); both
+  // carry { description, prompt, subagent_type } in `tool_input`.
+  if (
+    payload.hook_event_name === "PreToolUse" &&
+    (payload.tool_name === "Task" || payload.tool_name === "Agent")
+  ) {
     captureTaskDescription(store, sessionId, payload.tool_use_id, payload.tool_input);
   }
 
@@ -254,7 +259,8 @@ function summariseToolInput(toolName: string, input: unknown): string | undefine
     case "Glob":
     case "Grep":
       return typeof obj.pattern === "string" ? obj.pattern : undefined;
-    case "Task": {
+    case "Task":
+    case "Agent": {
       const desc = typeof obj.description === "string" ? obj.description : undefined;
       return desc ? desc.slice(0, 80) : undefined;
     }

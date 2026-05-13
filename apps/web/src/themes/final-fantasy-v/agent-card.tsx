@@ -51,10 +51,10 @@ export default function FFAgentCard(props: AgentCardProps) {
         </div>
       </div>
       <div className="mt-1 flex flex-col gap-1 border-white/20 border-t pt-2">
-        <StatRow label="ST" value={status} />
-        <StatRow label="CMD" value={cmd} />
-        <StatRow label="HIT" value={callsValue} />
-        <StatRow label="LST" value={elapsed} />
+        <StatRow label="Status" value={status} />
+        <StatRow label="Cmd" value={cmd} />
+        <StatRow label="Calls" value={callsValue} />
+        <StatRow label="Last" value={elapsed} />
       </div>
     </div>
   );

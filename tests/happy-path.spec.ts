@@ -71,6 +71,13 @@ test.describe("agent-zoo happy path", () => {
 
     const defaultHtml = await mascot.innerHTML();
     expect(defaultHtml).not.toBe(ffvHtml);
+
+    // FF1 (8-Bit Quest) also ships its own custom card, distinct from
+    // FFV's. Picking it should render the ff1-agent-card sentinel.
+    await page.getByTestId("theme-picker").click();
+    await page.getByTestId("theme-option-final-fantasy").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy");
+    await expect(page.getByTestId("ff1-agent-card").first()).toBeVisible();
   });
 
   test("dashboard landing surfaces attention list + running chips", async ({ page }) => {

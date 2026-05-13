@@ -1,5 +1,5 @@
 import type { AgentKind, AgentState } from "@agent-zoo/shared";
-import type { MascotState } from "./mascot.js";
+import type { MascotState } from "./types.js";
 
 /**
  * View-model for a single agent card. The default `<AgentNode>` and any

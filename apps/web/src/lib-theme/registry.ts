@@ -1,6 +1,6 @@
 import type { AgentKind } from "@agent-zoo/shared";
 import type { ComponentType } from "react";
-import type { AgentCardProps } from "../components/agent-card-props.js";
+import type { AgentCardProps } from "./agent-card-props.js";
 import type { Theme, ThemeManifest } from "./types.js";
 
 type EagerStringRecord = Record<string, string>;
@@ -81,7 +81,7 @@ function buildRegistry(): Record<string, Theme> {
     if (manifest.mascot_sprite !== undefined) theme.mascotSprite = manifest.mascot_sprite;
     if (spriteModules[spriteKey] !== undefined) theme.mascotSpriteUrl = spriteModules[spriteKey];
     const agentCardMod = agentCardModules[agentCardKey];
-    if (agentCardMod) theme.agentCard = agentCardMod.default;
+    if (agentCardMod?.default) theme.agentCard = agentCardMod.default;
 
     themes[themeId] = theme;
   }

@@ -12,7 +12,7 @@ import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { Clock, Code, Cpu } from "lucide-react";
 import { useState } from "react";
-import type { AgentCardProps } from "./agent-card-props.js";
+import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 

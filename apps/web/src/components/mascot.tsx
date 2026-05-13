@@ -2,7 +2,8 @@ import { useActiveTheme } from "@/lib-theme/context.js";
 import type { Theme } from "@/lib-theme/types.js";
 import type { AgentKind, AgentStatus } from "@agent-zoo/shared";
 
-export type MascotState = "running" | "waiting" | "idle" | "error" | "ended";
+import type { MascotState } from "@/lib-theme/types.js";
+export type { MascotState };
 
 export function statusToMascotState(status: AgentStatus): MascotState {
   switch (status) {

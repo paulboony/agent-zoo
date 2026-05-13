@@ -1,6 +1,6 @@
 import type { AgentKind } from "@agent-zoo/shared";
 import type { ComponentType } from "react";
-import type { AgentCardProps } from "../components/agent-card-props.js";
+import type { AgentCardProps } from "./agent-card-props.js";
 
 export type ThemeTokens = Record<string, string>;
 

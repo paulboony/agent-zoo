@@ -75,6 +75,17 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Tailwind v4 defaults `border-color` to currentColor, so utilities like
+   `border` and `border-r` ignore the theme `--border` token unless we
+   pipe it back in here. Mirrors shadcn's recommended base-layer rule. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+}
+
 html,
 body,
 #root {

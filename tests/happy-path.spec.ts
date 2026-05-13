@@ -54,6 +54,10 @@ test.describe("agent-zoo happy path", () => {
     await page.getByTestId("theme-option-final-fantasy-v").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy-v");
 
+    // FFV ships a custom agent-card.tsx — its presence proves the
+    // theme.agentCard dispatcher is wired end-to-end.
+    await expect(page.getByTestId("ff-agent-card").first()).toBeVisible();
+
     // mascot DOM changes between themes (default = inline SVG, FFV = sprite wrapper)
     const mascot = page.getByTestId("mascot-main").first();
     const ffvHtml = await mascot.innerHTML();
@@ -61,6 +65,10 @@ test.describe("agent-zoo happy path", () => {
     await page.getByTestId("theme-picker").click();
     await page.getByTestId("theme-option-default").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "default");
+
+    // Switching back removes the FF custom card; default card returns.
+    await expect(page.getByTestId("ff-agent-card")).toHaveCount(0);
+
     const defaultHtml = await mascot.innerHTML();
     expect(defaultHtml).not.toBe(ffvHtml);
   });

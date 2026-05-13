@@ -36,11 +36,21 @@ export interface Store {
   subscribers: Set<(msg: SseMessage) => void>;
   recent_events: CircularBuffer<HookPayload>;
   /**
-   * Per-session correlation buffer: tool_use_id → Task input.
-   * Populated on the parent's PreToolUse for the Task tool, consumed when
-   * the matching SubagentStart arrives, cleared when the session ends.
+   * Per-session correlation buffer: tool_use_id → Task input. Populated
+   * on the parent's PreToolUse for the **Task** tool (which uses its
+   * tool_use_id as the spawned agent's agent_id), consumed when the
+   * matching SubagentStart arrives, cleared when the session ends.
    */
   pending_subagents: Map<string, Map<string, PendingSubagent>>;
+  /**
+   * Per-session FIFO queue of Agent-tool dispatches. The Agent tool's
+   * tool_use_id (Claude API "toolu_XXX") does NOT match its spawned
+   * agent_id (SDK "aXXX"), so we can't key by id. Instead the queue is
+   * popped in order on each unmatched SubagentStart — Claude Code
+   * dispatches sub-agents sequentially within one main agent, so
+   * order-based correlation is reliable in practice.
+   */
+  pending_agent_dispatches: Map<string, PendingSubagent[]>;
 }
 
 export function createStore(): Store {
@@ -50,6 +60,7 @@ export function createStore(): Store {
     subscribers: new Set(),
     recent_events: createCircularBuffer<HookPayload>(1000),
     pending_subagents: new Map(),
+    pending_agent_dispatches: new Map(),
   };
 }
 

@@ -3,44 +3,83 @@ import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent
 import { rollupSessionStatus } from "@agent-zoo/shared";
 import type { Store } from "./state.js";
 
-function captureTaskDescription(
+/**
+ * Extract { description, prompt, subagent_type } from a Task/Agent
+ * tool_input. Returns undefined when description is missing — without
+ * a description we have nothing useful to attach to the sub-agent.
+ */
+function readDispatchInput(toolInput: unknown):
+  | { description: string; prompt?: string; subagent_type: string }
+  | undefined {
+  if (!toolInput || typeof toolInput !== "object") return undefined;
+  const obj = toolInput as Record<string, unknown>;
+  const description = typeof obj.description === "string" ? obj.description : undefined;
+  if (!description) return undefined;
+  const prompt = typeof obj.prompt === "string" ? obj.prompt : undefined;
+  const subagent_type = typeof obj.subagent_type === "string" ? obj.subagent_type : "";
+  return {
+    description,
+    ...(prompt !== undefined ? { prompt } : {}),
+    subagent_type,
+  };
+}
+
+function captureTaskDispatch(
   store: Store,
   sessionId: string,
   toolUseId: string,
   toolInput: unknown,
 ): void {
-  if (!toolInput || typeof toolInput !== "object") return;
-  const obj = toolInput as Record<string, unknown>;
-  const description = typeof obj.description === "string" ? obj.description : undefined;
-  if (!description) return;
-  const prompt = typeof obj.prompt === "string" ? obj.prompt : undefined;
-  const subagent_type = typeof obj.subagent_type === "string" ? obj.subagent_type : "";
+  const dispatch = readDispatchInput(toolInput);
+  if (!dispatch) return;
   let perSession = store.pending_subagents.get(sessionId);
   if (!perSession) {
     perSession = new Map();
     store.pending_subagents.set(sessionId, perSession);
   }
-  perSession.set(toolUseId, {
-    description,
-    ...(prompt !== undefined ? { prompt } : {}),
-    subagent_type,
-  });
+  perSession.set(toolUseId, dispatch);
 }
 
+function captureAgentDispatch(store: Store, sessionId: string, toolInput: unknown): void {
+  const dispatch = readDispatchInput(toolInput);
+  if (!dispatch) return;
+  let queue = store.pending_agent_dispatches.get(sessionId);
+  if (!queue) {
+    queue = [];
+    store.pending_agent_dispatches.set(sessionId, queue);
+  }
+  queue.push(dispatch);
+}
+
+/**
+ * Resolve a sub-agent's pending dispatch. Tries the keyed map first
+ * (Task tool uses tool_use_id == agent_id, so the lookup hits), then
+ * falls back to popping the FIFO queue (Agent tool uses an SDK-side
+ * agent_id distinct from its API tool_use_id — order-based match).
+ */
 function consumePendingSubagent(
   store: Store,
   sessionId: string,
   agentId: string,
 ): { description: string; prompt?: string } | undefined {
   const perSession = store.pending_subagents.get(sessionId);
-  if (!perSession) return undefined;
-  const pending = perSession.get(agentId);
-  if (!pending) return undefined;
-  perSession.delete(agentId);
-  return {
-    description: pending.description,
-    ...(pending.prompt !== undefined ? { prompt: pending.prompt } : {}),
-  };
+  const pending = perSession?.get(agentId);
+  if (pending) {
+    perSession?.delete(agentId);
+    return {
+      description: pending.description,
+      ...(pending.prompt !== undefined ? { prompt: pending.prompt } : {}),
+    };
+  }
+  const queue = store.pending_agent_dispatches.get(sessionId);
+  const head = queue?.shift();
+  if (head) {
+    return {
+      description: head.description,
+      ...(head.prompt !== undefined ? { prompt: head.prompt } : {}),
+    };
+  }
+  return undefined;
 }
 
 export function reduce(store: Store, env: HookEnvelope): SessionState | null {
@@ -90,16 +129,18 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   applyTransition(agent, session, payload);
   session.agents[agentId] = agent;
 
-  // Stash sub-agent dispatch metadata under tool_use_id so the eventual
-  // SubagentStart can pick it up. agent_id == tool_use_id for Task-spawned
-  // sub-agents. Claude Code dispatches sub-agents via either the `Task`
-  // tool (Claude Code SDK) or the `Agent` tool (Claude API tool); both
-  // carry { description, prompt, subagent_type } in `tool_input`.
-  if (
-    payload.hook_event_name === "PreToolUse" &&
-    (payload.tool_name === "Task" || payload.tool_name === "Agent")
-  ) {
-    captureTaskDescription(store, sessionId, payload.tool_use_id, payload.tool_input);
+  // Stash sub-agent dispatch metadata so the eventual SubagentStart can
+  // pick it up. The Task tool (Claude Code SDK) uses its tool_use_id as
+  // the spawned agent's agent_id → we can correlate by id. The Agent
+  // tool (Claude API) uses a Claude API tool_use_id ("toolu_XXX") that
+  // does NOT match the SDK-side agent_id ("aXXX"); we queue those and
+  // pop FIFO on SubagentStart instead.
+  if (payload.hook_event_name === "PreToolUse") {
+    if (payload.tool_name === "Task") {
+      captureTaskDispatch(store, sessionId, payload.tool_use_id, payload.tool_input);
+    } else if (payload.tool_name === "Agent") {
+      captureAgentDispatch(store, sessionId, payload.tool_input);
+    }
   }
 
   session.status = rollupSessionStatus(session.agents);
@@ -112,6 +153,7 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   }
   if (payload.hook_event_name === "SessionEnd") {
     store.pending_subagents.delete(sessionId);
+    store.pending_agent_dispatches.delete(sessionId);
   }
 
   store.sessions.set(sessionId, session);

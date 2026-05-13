@@ -1,4 +1,6 @@
 import type { AgentKind } from "@agent-zoo/shared";
+import type { ComponentType } from "react";
+import type { AgentCardProps } from "../components/agent-card-props.js";
 import type { Theme, ThemeManifest } from "./types.js";
 
 type EagerStringRecord = Record<string, string>;
@@ -31,6 +33,10 @@ const soundModules = import.meta.glob("../themes/*/notification.mp3", {
   query: "?url",
   import: "default",
 }) as EagerStringRecord;
+const agentCardModules = import.meta.glob<{ default: ComponentType<AgentCardProps> }>(
+  "../themes/*/agent-card.tsx",
+  { eager: true },
+);
 
 const KIND_FILES: Record<AgentKind, string> = {
   main: "main.svg",
@@ -53,6 +59,7 @@ function buildRegistry(): Record<string, Theme> {
     const previewKey = `${folder}/preview.png`;
     const soundKey = `${folder}/notification.mp3`;
     const spriteKey = `${folder}/mascots/sprites.png`;
+    const agentCardKey = `${folder}/agent-card.tsx`;
 
     const mascots = {} as Record<AgentKind, string>;
     for (const kind of Object.keys(KIND_FILES) as AgentKind[]) {
@@ -73,6 +80,8 @@ function buildRegistry(): Record<string, Theme> {
     if (soundModules[soundKey] !== undefined) theme.notificationSoundUrl = soundModules[soundKey];
     if (manifest.mascot_sprite !== undefined) theme.mascotSprite = manifest.mascot_sprite;
     if (spriteModules[spriteKey] !== undefined) theme.mascotSpriteUrl = spriteModules[spriteKey];
+    const agentCardMod = agentCardModules[agentCardKey];
+    if (agentCardMod) theme.agentCard = agentCardMod.default;
 
     themes[themeId] = theme;
   }

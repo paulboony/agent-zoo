@@ -6,11 +6,13 @@ import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { useActiveTheme } from "@/lib-theme/context.js";
 import { formatDuration } from "@/lib/time.js";
 import type { AgentState, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { Clock, Code, Cpu } from "lucide-react";
 import { useState } from "react";
+import type { AgentCardProps } from "./agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 
@@ -20,21 +22,51 @@ function timeAgo(iso: string, now: number): string {
   return formatDuration(now - t, { suffix: " ago", justNowMs: 5000 });
 }
 
-function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
-  const now = useNow();
+function buildAgentCardProps(agent: AgentState, size: number): AgentCardProps {
   const showTool = agent.current_tool ?? agent.last_tool;
-  const showSummary = agent.current_tool
-    ? agent.current_tool_input_summary
-    : agent.last_tool_input_summary;
-  const toolLabel = agent.current_tool ? showTool : showTool ? `last: ${showTool}` : null;
-  const toolText = toolLabel ? `${toolLabel}${showSummary ? `: ${showSummary}` : ""}` : "";
+  const toolLabel = agent.current_tool
+    ? showTool ?? null
+    : showTool
+      ? `last: ${showTool}`
+      : null;
+  const toolSummary = agent.current_tool
+    ? agent.current_tool_input_summary ?? null
+    : agent.last_tool_input_summary ?? null;
+  return {
+    agent,
+    isMain: agent.id === "main",
+    displayKind: resolveDisplayKind(agent),
+    mascotState: statusToMascotState(agent.status),
+    toolLabel,
+    toolSummary,
+    size,
+  };
+}
+
+function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
+  const theme = useActiveTheme();
+  const props = buildAgentCardProps(agent, size);
+  const Custom = theme.agentCard;
+  return Custom ? <Custom {...props} /> : <DefaultAgentCard {...props} />;
+}
+
+function DefaultAgentCard({
+  agent,
+  displayKind,
+  mascotState,
+  toolLabel,
+  toolSummary,
+  size,
+}: AgentCardProps) {
+  const now = useNow();
+  const toolText = toolLabel ? `${toolLabel}${toolSummary ? `: ${toolSummary}` : ""}` : "";
 
   return (
     <Card className="relative w-full items-center gap-1.5 rounded-md p-3">
       <div className="absolute top-2 right-2">
         <StatusBadge status={agent.status} />
       </div>
-      <Mascot kind={resolveDisplayKind(agent)} state={statusToMascotState(agent.status)} size={size} />
+      <Mascot kind={displayKind} state={mascotState} size={size} />
       <div className="flex flex-col items-center gap-0.5">
         <span className="font-medium text-sm">
           {agent.label ?? agent.agent_type ?? agent.id}

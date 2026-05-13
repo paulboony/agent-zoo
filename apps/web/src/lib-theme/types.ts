@@ -1,4 +1,6 @@
 import type { AgentKind } from "@agent-zoo/shared";
+import type { ComponentType } from "react";
+import type { AgentCardProps } from "../components/agent-card-props.js";
 
 export type ThemeTokens = Record<string, string>;
 
@@ -67,4 +69,6 @@ export interface Theme {
   mascotMode: MascotMode;
   mascotSpriteUrl?: string;
   mascotSprite?: MascotSpriteSpec;
+  /** Optional custom card renderer; falls back to <DefaultAgentCard>. */
+  agentCard?: ComponentType<AgentCardProps>;
 }

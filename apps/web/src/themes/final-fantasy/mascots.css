@@ -1,12 +1,80 @@
-/* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized
-   wrapper; its child .mascot-sprite is the scaled inner element with the
-   background-image. The CSS variables --row, --frame-N, --dur, --stride-x,
-   --stride-y, --pad-x, --pad-y come from inline styles on .mascot-sprite.
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 
-   Each animation frame is one stop in a keyframe with step-end timing —
-   the browser holds each value until the next keyframe, then snaps. Frame
-   columns can be non-contiguous (e.g. running might use cols 0 and 3). */
+/* 8-Bit Quest: a strict four-colour palette (black void, white text,
+   royal blue windows, accent gold/red status chips) and pixel-perfect
+   rendering. JetBrains Mono for everything; ALL CAPS headlines. */
+body {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+[data-slot="badge"] {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Pixel grid: hard 90° corners on every element. */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+/* Cards: solid royal blue. Sidebar: pitch black (the void). */
+[data-slot="card"] {
+  background: #000080 !important;
+  color: #ffffff !important;
+}
+
+[data-slot="sidebar"][data-sidebar="sidebar"] {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+[data-slot="card"] {
+  border: 2px solid #ffffff !important;
+  box-shadow:
+    inset 0 0 0 1px #000080,
+    inset 0 0 0 2px #ffffff !important;
+}
+
+/* White text on royal blue gets a 1px hard pixel drop shadow. Excludes
+   inner badge content so chips keep their own contrast. */
+[data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *),
+[data-slot="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
+  text-shadow: 1px 1px 0 #000000;
+}
+
+/* Status chips: dark-grey background with the status colour as the text
+   (inverse of the default fill-and-white pattern), 1px white border to
+   stay inside the 8-Bit Quest palette. Background needs !important to
+   beat the inline style set by <StatusBadge>. */
+[data-testid^="status-"] {
+  background-color: #1a1a1a !important;
+  border: 1px solid #ffffff !important;
+}
+[data-testid="status-running"]            { color: var(--status-running); }
+[data-testid="status-waiting"],
+[data-testid="status-waiting_for_human"]  { color: var(--status-waiting); }
+[data-testid="status-idle"]               { color: var(--status-idle); }
+[data-testid="status-error"]              { color: var(--status-error); }
+[data-testid="status-ended"]              { color: var(--status-ended); }
+
+/* Sprite-mode rules: .mascot[data-render="sprite"] is the cell-sized
+   wrapper, .mascot-sprite is the scaled inner element with the
+   background-image. Variables --row, --frame-N, --dur, --stride-x,
+   --stride-y, --pad-x, --pad-y come from inline styles. */
 .mascot-sprite {
   background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1);
   background-position-y: calc((var(--pad-y) + var(--row) * var(--stride-y)) * -1);

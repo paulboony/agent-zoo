@@ -29,7 +29,7 @@ h1, h2, h3, h4, h5, h6 {
    gradient plus the triple-layered window border — 2px white outer,
    1px black inner line via inset shadow, 1px white innermost. */
 [data-slot="card"],
-[data-slot="sidebar"][data-sidebar="sidebar"] {
+[data-sidebar="sidebar"] {
   background: linear-gradient(to bottom, #000080, #000040) !important;
   color: #ffffff !important;
 }
@@ -44,7 +44,7 @@ h1, h2, h3, h4, h5, h6 {
 /* White text on the navy gradient gets a 1px hard drop shadow per spec.
    Excludes inner badge content so chips keep their own contrast. */
 [data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *),
-[data-slot="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
+[data-sidebar="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
   text-shadow: 1px 1px 0 #000000;
 }
 

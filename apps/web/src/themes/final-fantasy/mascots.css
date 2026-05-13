@@ -37,7 +37,7 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff !important;
 }
 
-[data-slot="sidebar"][data-sidebar="sidebar"] {
+[data-sidebar="sidebar"] {
   background: #000000 !important;
   color: #ffffff !important;
 }
@@ -52,7 +52,7 @@ h1, h2, h3, h4, h5, h6 {
 /* White text on royal blue gets a 1px hard pixel drop shadow. Excludes
    inner badge content so chips keep their own contrast. */
 [data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *),
-[data-slot="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
+[data-sidebar="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
   text-shadow: 1px 1px 0 #000000;
 }
 

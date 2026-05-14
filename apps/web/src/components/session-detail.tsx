@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.js";
 import { Card } from "@/components/ui/card.js";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
@@ -134,17 +135,21 @@ function DefaultAgentCard({
           </Tooltip>
         )}
         {agent.prompt && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className="line-clamp-2 whitespace-pre-wrap break-words text-fg/60 text-xs italic">
+          <Popover>
+            <PopoverTrigger asChild>
+              <p className="line-clamp-2 cursor-pointer whitespace-pre-wrap break-words text-left text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
                 <span aria-hidden="true" className="mr-1 select-none text-fg/40">›</span>
                 {agent.prompt}
               </p>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-md whitespace-pre-wrap break-words">
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="start"
+              className="max-h-[60vh] w-md max-w-[90vw] overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm"
+            >
               {agent.prompt}
-            </TooltipContent>
-          </Tooltip>
+            </PopoverContent>
+          </Popover>
         )}
         <div className="truncate font-mono text-fg/50 text-xs">{stats}</div>
       </div>

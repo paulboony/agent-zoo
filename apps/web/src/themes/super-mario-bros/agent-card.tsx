@@ -1,4 +1,5 @@
 import { Mascot } from "@/components/mascot.js";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import { useNow } from "@/hooks/use-now.js";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { formatDuration } from "@/lib/time.js";
@@ -72,9 +73,20 @@ export default function SMBAgentCard(props: AgentCardProps) {
           </div>
         )}
         {agent.prompt && (
-          <p className="line-clamp-2 w-full whitespace-pre-wrap break-words text-center text-fg/60 text-xs italic">
-            {agent.prompt}
-          </p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <p className="line-clamp-2 w-full cursor-pointer whitespace-pre-wrap break-words text-center text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
+                {agent.prompt}
+              </p>
+            </PopoverTrigger>
+            <PopoverContent
+              side="bottom"
+              align="center"
+              className="max-h-[60vh] w-md max-w-[90vw] overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm"
+            >
+              {agent.prompt}
+            </PopoverContent>
+          </Popover>
         )}
       </div>
     </div>

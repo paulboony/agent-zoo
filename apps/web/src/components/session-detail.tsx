@@ -157,7 +157,8 @@ function DefaultAgentCard({
  * that hit our hook handler with an `agent_id` but never go through
  * the normal `PreToolUse(Agent) → SubagentStart` flow. They surface
  * after stream-recovery / background-task housekeeping and look like:
- *   - no `agent_type`
+ *   - missing or empty `agent_type` (older sessions stored `""`
+ *     before the reducer normalised it away)
  *   - zero `tool_calls_count`
  * Real sub-agents always carry an `agent_type` from `SubagentStart`,
  * so this combined check excludes the phantoms cleanly. We avoid
@@ -165,7 +166,7 @@ function DefaultAgentCard({
  * aren't useful to display).
  */
 function isPhantomAgent(agent: AgentState): boolean {
-  return agent.agent_type === undefined && agent.tool_calls_count === 0;
+  return !agent.agent_type && agent.tool_calls_count === 0;
 }
 
 function SubAgentSection({ subs }: { subs: AgentState[] }) {

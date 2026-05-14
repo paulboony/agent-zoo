@@ -98,10 +98,14 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   const existingAgent = session.agents[agentId];
   let agent: AgentState;
   if (!existingAgent) {
-    const agentType =
+    // Some Claude Code phantom events (stream-recovery / background
+    // housekeeping) send `agent_type: ""` — treat empty string as
+    // missing so the field stays absent for real comparisons.
+    const rawAgentType =
       "agent_type" in payload && typeof payload.agent_type === "string"
         ? payload.agent_type
         : undefined;
+    const agentType = rawAgentType ? rawAgentType : undefined;
     agent = {
       id: agentId,
       ...(agentType !== undefined ? { agent_type: agentType } : {}),

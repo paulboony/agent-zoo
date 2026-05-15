@@ -38,6 +38,95 @@ export function parseSubagentMeta(
   return out;
 }
 
+/**
+ * Walk parsed JSONL entries from a sub-agent transcript and derive
+ * the numeric counters, model, timestamps, and prompt body we need to
+ * reconstruct an `AgentState` from disk.
+ *
+ *   - `tool_calls_count` is the number of `"type":"tool_use"` entries.
+ *   - `error_count` is the number of `"type":"tool_result"` entries
+ *     with `is_error: true`.
+ *   - `model` is read from the most recent assistant entry that
+ *     carries `message.model` (last-write-wins).
+ *   - `prompt` is the text of the first `"role":"user"` (or `"type":"user"`)
+ *     entry — its `message.content` may be either a string or an array
+ *     of `{type, text}` content blocks.
+ *   - `started_at` / `last_event_at` are the earliest / latest
+ *     `timestamp` values across all entries.
+ *
+ * Malformed entries are skipped silently.
+ */
+export function parseSubagentTranscript(entries: unknown[]): {
+  prompt?: string;
+  tool_calls_count: number;
+  error_count: number;
+  model?: string;
+  started_at?: string;
+  last_event_at?: string;
+} {
+  let tool_calls_count = 0;
+  let error_count = 0;
+  let model: string | undefined;
+  let prompt: string | undefined;
+  let started_at: string | undefined;
+  let last_event_at: string | undefined;
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+
+    const type = typeof e.type === "string" ? e.type : undefined;
+    const role = typeof e.role === "string" ? e.role : undefined;
+
+    if (type === "tool_use") tool_calls_count++;
+    if (type === "tool_result" && e.is_error === true) error_count++;
+
+    if (type === "assistant" || role === "assistant") {
+      const msg = e.message;
+      if (msg && typeof msg === "object") {
+        const m = (msg as Record<string, unknown>).model;
+        if (typeof m === "string" && m.length > 0) model = m;
+      }
+    }
+
+    if (prompt === undefined && (type === "user" || role === "user")) {
+      const msg = e.message;
+      if (msg && typeof msg === "object") {
+        const content = (msg as Record<string, unknown>).content;
+        if (typeof content === "string" && content.length > 0) {
+          prompt = content;
+        } else if (Array.isArray(content)) {
+          const texts: string[] = [];
+          for (const block of content) {
+            if (!block || typeof block !== "object") continue;
+            const b = block as Record<string, unknown>;
+            if (b.type === "text" && typeof b.text === "string") {
+              texts.push(b.text);
+            }
+          }
+          if (texts.length > 0) prompt = texts.join("\n");
+        }
+      }
+    }
+
+    const ts = typeof e.timestamp === "string" ? e.timestamp : undefined;
+    if (ts) {
+      if (started_at === undefined || ts < started_at) started_at = ts;
+      if (last_event_at === undefined || ts > last_event_at) last_event_at = ts;
+    }
+  }
+
+  const result: ReturnType<typeof parseSubagentTranscript> = {
+    tool_calls_count,
+    error_count,
+  };
+  if (prompt !== undefined) result.prompt = prompt;
+  if (model !== undefined) result.model = model;
+  if (started_at !== undefined) result.started_at = started_at;
+  if (last_event_at !== undefined) result.last_event_at = last_event_at;
+  return result;
+}
+
 export async function runBackfill(store: Store): Promise<void> {
   const home = process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
   const projectsDir = path.join(home, "projects");

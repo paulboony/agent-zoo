@@ -324,6 +324,10 @@ export async function runBackfill(store: Store): Promise<void> {
       "parentPath" in entry && typeof entry.parentPath === "string"
         ? entry.parentPath
         : projectsDir;
+    // Sub-agent transcripts live under `<session-id>/subagents/`. They
+    // are NOT main-session jsonls — they're recovered separately by
+    // backfillSessionSubagents — so exclude them from this scan.
+    if (path.basename(parent) === "subagents") continue;
     const fullPath = path.join(parent, entry.name);
     try {
       const stat = await fs.stat(fullPath);
@@ -353,7 +357,42 @@ export async function runBackfill(store: Store): Promise<void> {
     }
   }
 
-  logger.info({ files: jsonlFiles.length, sessions: store.sessions.size }, "backfill complete");
+  // For every session we just rebuilt, look for a sibling `subagents/`
+  // directory next to its main jsonl and recover anything inside. The
+  // `<session-id>/subagents/agent-*.jsonl` layout is what Claude Code
+  // writes when sub-agents are dispatched.
+  const subagentCutoff = Date.now() - TWENTY_FOUR_HOURS_MS;
+  const nowIso = new Date().toISOString();
+  let totalRecovered = 0;
+  let totalSkipped = 0;
+  for (const { path: file } of jsonlFiles) {
+    const sessionId = path.basename(file, ".jsonl");
+    const subagentsDir = path.join(path.dirname(file), sessionId, "subagents");
+    if (!store.sessions.has(sessionId)) continue;
+    try {
+      const result = await backfillSessionSubagents(
+        store,
+        sessionId,
+        subagentsDir,
+        subagentCutoff,
+        nowIso,
+      );
+      totalRecovered += result.recovered;
+      totalSkipped += result.skipped;
+    } catch (err) {
+      logger.warn({ err: String(err), sessionId }, "subagent backfill failed");
+    }
+  }
+
+  logger.info(
+    {
+      files: jsonlFiles.length,
+      sessions: store.sessions.size,
+      subagents_recovered: totalRecovered,
+      subagents_skipped: totalSkipped,
+    },
+    "backfill complete",
+  );
 }
 
 async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Promise<void> {

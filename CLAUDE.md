@@ -34,9 +34,14 @@ Claude Code hooks ──> hook-handler.mjs ──> POST /hook
 ```
 
 Backfill: on boot the server scans `~/.claude/projects/**.jsonl` (last
-24h, last 200 lines per file) to rebuild state. `refreshMainAgentModels`
-re-scans every 30 s to fill in `agent.model` for sessions whose backfill
-missed it.
+24h, last 200 lines per file) to rebuild state. For each recovered
+session, it then walks `<session-id>/subagents/agent-*.meta.json` +
+`agent-*.jsonl` (Claude Code's on-disk sub-agent transcripts) and
+restores those sub-agents as `status: "ended"` with their `label`,
+`prompt`, `tool_calls_count`, and `model`. Live hook events overwrite
+the ended state for sub-agents that are actually still running.
+`refreshMainAgentModels` re-scans every 30 s to fill in `agent.model`
+for sessions whose backfill missed it.
 
 ## Common change targets
 
@@ -90,12 +95,19 @@ the whole stack via `pnpm dev`.
 
 ## Tests
 
-`pnpm test` runs Playwright. `tests/happy-path.spec.ts` covers session
-list, sub-agent tree, theme switch, and the settings page. Tests run
-against the running dev server (`reuseExistingServer: true` locally).
-The seed script `apps/server/scripts/seed.mjs` populates a demo
-session with one main agent plus five sub-agents — one per
-label-rule mascot kind plus an ended reviewer behind "Show ended".
+Two suites:
+
+- **Unit (`pnpm test:unit`)** — vitest in `apps/server`. Currently
+  covers the sub-agent backfill parsers and orchestrator
+  (`apps/server/src/backfill.test.ts`). No web-side vitest yet.
+
+- **E2E (`pnpm test`)** — Playwright. `tests/happy-path.spec.ts`
+  covers session list, sub-agent tree, theme switch, dashboard
+  landing, and the settings page. Tests run against the running dev
+  server (`reuseExistingServer: true` locally). The seed script
+  `apps/server/scripts/seed.mjs` populates a demo session with one
+  main agent plus five sub-agents — one per label-rule mascot kind
+  plus an ended reviewer behind "Show ended".
 
 ## Conventions / gotchas
 

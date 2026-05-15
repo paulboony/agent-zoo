@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { AgentState, HookEnvelope, HookPayload } from "@agent-zoo/shared";
 import { logger } from "./logger.js";
-import { reduce } from "./reducer.js";
+import { enqueueAgentDispatch, reduce } from "./reducer.js";
 import type { Store } from "./state.js";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -16,16 +16,12 @@ const TAIL_LINES = 200;
  *
  * Returns `null` when the input isn't a plain object. Otherwise returns
  * an object with the recognised fields, omitting any that aren't a
- * non-empty string. The `agentId` arg is for diagnostics only — it isn't
- * read but kept in the signature so callers don't have to pass it
- * separately to the consumer that combines this with the transcript
- * parser.
+ * non-empty string. Callers log the agent id at the failure site if
+ * needed — this function is intentionally id-agnostic.
  */
 export function parseSubagentMeta(
-  agentId: string,
   meta: unknown,
 ): { agentType?: string; description?: string } | null {
-  void agentId;
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
   const obj = meta as Record<string, unknown>;
   const out: { agentType?: string; description?: string } = {};
@@ -206,7 +202,7 @@ export async function backfillSessionSubagents(
       logger.warn({ err: String(err), metaPath }, "subagent meta parse failed");
       continue;
     }
-    const meta = parseSubagentMeta(agentId, metaRaw);
+    const meta = parseSubagentMeta(metaRaw);
     if (!meta) continue;
 
     let transcript: ReturnType<typeof parseSubagentTranscript> = {
@@ -238,23 +234,17 @@ export async function backfillSessionSubagents(
     const startedAt = transcript.started_at ?? receivedAt;
     const lastEventAt = transcript.last_event_at ?? startedAt;
 
-    // 1. PreToolUse(Agent) — populates the FIFO queue with description + prompt.
+    // 1. Pre-populate the FIFO queue so the synthesised SubagentStart
+    //    below pops the description + prompt onto the new agent. We use
+    //    the named helper rather than synthesising a PreToolUse(Agent)
+    //    envelope through `reduce()`, because that envelope would lack
+    //    an `agent_id` and incorrectly increment the main agent's
+    //    tool_calls_count / flip its status to running.
     if (description !== undefined) {
-      reduce(store, {
-        received_at: startedAt,
-        payload: {
-          hook_event_name: "PreToolUse",
-          session_id: sessionId,
-          cwd: "",
-          transcript_path: "",
-          tool_name: "Agent",
-          tool_use_id: `backfill-${agentId}`,
-          tool_input: {
-            description,
-            ...(prompt !== undefined ? { prompt } : {}),
-            subagent_type: agentType,
-          },
-        },
+      enqueueAgentDispatch(store, sessionId, {
+        description,
+        ...(prompt !== undefined ? { prompt } : {}),
+        subagent_type: agentType,
       });
     }
 
@@ -320,15 +310,22 @@ export async function runBackfill(store: Store): Promise<void> {
   const jsonlFiles: { path: string; mtimeMs: number }[] = [];
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
-    const parent =
-      "parentPath" in entry && typeof entry.parentPath === "string"
-        ? entry.parentPath
-        : projectsDir;
+    // `parentPath` is guaranteed on Dirent in Node ≥ 20.12 (the repo's
+    // minimum per the engines field). On older Node it would be
+    // undefined and any sub-agent jsonl would be silently misrouted
+    // into the main-session scan, so we require it.
+    if (typeof entry.parentPath !== "string") {
+      logger.warn(
+        { name: entry.name },
+        "Dirent.parentPath missing; refusing to process (Node ≥ 20.12 required)",
+      );
+      continue;
+    }
     // Sub-agent transcripts live under `<session-id>/subagents/`. They
     // are NOT main-session jsonls — they're recovered separately by
     // backfillSessionSubagents — so exclude them from this scan.
-    if (path.basename(parent) === "subagents") continue;
-    const fullPath = path.join(parent, entry.name);
+    if (path.basename(entry.parentPath) === "subagents") continue;
+    const fullPath = path.join(entry.parentPath, entry.name);
     try {
       const stat = await fs.stat(fullPath);
       if (stat.mtimeMs >= cutoff) jsonlFiles.push({ path: fullPath, mtimeMs: stat.mtimeMs });
@@ -503,11 +500,10 @@ export async function refreshMainAgentModels(store: Store): Promise<void> {
   for (const entry of entries) {
     if (pending.size === 0) break;
     if (!entry.isFile() || !entry.name.endsWith(".jsonl")) continue;
-    const parent =
-      "parentPath" in entry && typeof entry.parentPath === "string"
-        ? entry.parentPath
-        : projectsDir;
-    const fullPath = path.join(parent, entry.name);
+    if (typeof entry.parentPath !== "string") continue;
+    // Skip sub-agent transcripts; model refresh is main-agent-only.
+    if (path.basename(entry.parentPath) === "subagents") continue;
+    const fullPath = path.join(entry.parentPath, entry.name);
     try {
       const stat = await fs.stat(fullPath);
       if (stat.mtimeMs < cutoff) continue;

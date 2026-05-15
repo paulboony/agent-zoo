@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
-import { parseSubagentMeta } from "./backfill.js";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  backfillSessionSubagents,
+  parseSubagentMeta,
+  parseSubagentTranscript,
+} from "./backfill.js";
+import { createStore, type Store } from "./state.js";
 
 describe("parseSubagentMeta", () => {
   it("returns agentType and description from valid meta", () => {
-    const result = parseSubagentMeta("a1234567", {
+    const result = parseSubagentMeta({
       agentType: "general-purpose",
       description: "Review the design",
     });
@@ -14,23 +22,21 @@ describe("parseSubagentMeta", () => {
   });
 
   it("returns undefined fields when meta keys are missing", () => {
-    expect(parseSubagentMeta("a1234567", {})).toEqual({});
+    expect(parseSubagentMeta({})).toEqual({});
   });
 
   it("ignores non-string field values", () => {
     expect(
-      parseSubagentMeta("a1234567", { agentType: 123, description: null }),
+      parseSubagentMeta({ agentType: 123, description: null }),
     ).toEqual({});
   });
 
   it("returns null for non-object input", () => {
-    expect(parseSubagentMeta("a1234567", null)).toBeNull();
-    expect(parseSubagentMeta("a1234567", "string")).toBeNull();
-    expect(parseSubagentMeta("a1234567", 42)).toBeNull();
+    expect(parseSubagentMeta(null)).toBeNull();
+    expect(parseSubagentMeta("string")).toBeNull();
+    expect(parseSubagentMeta(42)).toBeNull();
   });
 });
-
-import { parseSubagentTranscript } from "./backfill.js";
 
 describe("parseSubagentTranscript", () => {
   it("returns zeros for empty input", () => {
@@ -112,13 +118,6 @@ describe("parseSubagentTranscript", () => {
   });
 });
 
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { afterEach, beforeEach } from "vitest";
-import { backfillSessionSubagents } from "./backfill.js";
-import { createStore, type Store } from "./state.js";
-
 const SID = "sess-test";
 
 async function writeMeta(
@@ -166,6 +165,47 @@ describe("backfillSessionSubagents", () => {
 
   afterEach(async () => {
     await fs.rm(tmp, { recursive: true, force: true });
+  });
+
+  it("does not touch a pre-existing main agent when recovering a sub-agent", async () => {
+    // Seed a `main` agent the way replayJsonl would have, with a known
+    // tool_calls_count and ended status.
+    const session = store.sessions.get(SID);
+    if (!session) throw new Error("test setup: session missing");
+    session.agents.main = {
+      id: "main",
+      status: "ended",
+      started_at: "2026-05-15T09:00:00.000Z",
+      last_event_at: "2026-05-15T09:30:00.000Z",
+      tool_calls_count: 42,
+      error_count: 0,
+    };
+
+    await writeMeta(tmp, "a1", {
+      agentType: "general-purpose",
+      description: "Sub-agent",
+    });
+    await writeTranscript(tmp, "a1", [
+      {
+        type: "user",
+        timestamp: "2026-05-15T10:00:00.000Z",
+        message: { content: "go" },
+      },
+      { type: "tool_use", timestamp: "2026-05-15T10:00:30.000Z" },
+    ]);
+
+    await backfillSessionSubagents(
+      store,
+      SID,
+      tmp,
+      Date.now() - 60_000,
+      new Date().toISOString(),
+    );
+
+    const main = store.sessions.get(SID)?.agents.main;
+    expect(main?.tool_calls_count).toBe(42);
+    expect(main?.status).toBe("ended");
+    expect(main?.current_tool).toBeUndefined();
   });
 
   it("recovers a fresh sub-agent with label, prompt, and counters", async () => {

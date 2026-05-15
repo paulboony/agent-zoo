@@ -52,6 +52,30 @@ function captureAgentDispatch(store: Store, sessionId: string, toolInput: unknow
 }
 
 /**
+ * Public helper for non-hook code paths (notably backfill) that need to
+ * pre-populate the Agent-tool FIFO queue without going through the
+ * reducer's main `applyTransition` flow.
+ *
+ * Used by `backfillSessionSubagents` so a recovered sub-agent's
+ * description + prompt are still attached via `consumePendingSubagent`
+ * on the synthetic `SubagentStart` event, but without the side-effect
+ * of incrementing the main agent's tool-call counter and flipping its
+ * status back to running.
+ */
+export function enqueueAgentDispatch(
+  store: Store,
+  sessionId: string,
+  dispatch: { description: string; prompt?: string; subagent_type: string },
+): void {
+  let queue = store.pending_agent_dispatches.get(sessionId);
+  if (!queue) {
+    queue = [];
+    store.pending_agent_dispatches.set(sessionId, queue);
+  }
+  queue.push(dispatch);
+}
+
+/**
  * Resolve a sub-agent's pending dispatch. Tries the keyed map first
  * (Task tool uses tool_use_id == agent_id, so the lookup hits), then
  * falls back to popping the FIFO queue (Agent tool uses an SDK-side

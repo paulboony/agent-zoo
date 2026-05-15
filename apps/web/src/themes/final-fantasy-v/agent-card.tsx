@@ -1,4 +1,5 @@
 import { Mascot } from "@/components/mascot.js";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import { useNow } from "@/hooks/use-now.js";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { formatDuration } from "@/lib/time.js";
@@ -56,6 +57,27 @@ export default function FFAgentCard(props: AgentCardProps) {
         <StatRow label="Calls" value={callsValue} />
         <StatRow label="Last" value={elapsed} />
       </div>
+      {agent.prompt && (
+        <div className="mt-1 flex flex-col gap-1 border-white/20 border-t pt-2">
+          <div className="font-semibold text-[10px] text-[#e9c349] tracking-widest uppercase">
+            Mission
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <p className="line-clamp-2 cursor-pointer whitespace-pre-wrap break-words text-left text-xs italic leading-snug transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-[#e9c349]">
+                {agent.prompt}
+              </p>
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="start"
+              className="max-h-[60vh] w-md max-w-[90vw] overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm"
+            >
+              {agent.prompt}
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
     </div>
   );
 }

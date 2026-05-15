@@ -11,6 +11,33 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 const TAIL_LINES = 200;
 
+/**
+ * Parse a sub-agent's `agent-<id>.meta.json` contents.
+ *
+ * Returns `null` when the input isn't a plain object. Otherwise returns
+ * an object with the recognised fields, omitting any that aren't a
+ * non-empty string. The `agentId` arg is for diagnostics only — it isn't
+ * read but kept in the signature so callers don't have to pass it
+ * separately to the consumer that combines this with the transcript
+ * parser.
+ */
+export function parseSubagentMeta(
+  agentId: string,
+  meta: unknown,
+): { agentType?: string; description?: string } | null {
+  void agentId;
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const obj = meta as Record<string, unknown>;
+  const out: { agentType?: string; description?: string } = {};
+  if (typeof obj.agentType === "string" && obj.agentType.length > 0) {
+    out.agentType = obj.agentType;
+  }
+  if (typeof obj.description === "string" && obj.description.length > 0) {
+    out.description = obj.description;
+  }
+  return out;
+}
+
 export async function runBackfill(store: Store): Promise<void> {
   const home = process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
   const projectsDir = path.join(home, "projects");

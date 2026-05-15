@@ -127,6 +127,180 @@ export function parseSubagentTranscript(entries: unknown[]): {
   return result;
 }
 
+/**
+ * Walk one session's `subagents/` directory and recover every
+ * sub-agent inside as `status: "ended"`. Synthesises the same hook
+ * envelopes the live reducer expects so the agent's `label`, `prompt`,
+ * and lifecycle timestamps follow the same code path as live events.
+ * Numeric counters (`tool_calls_count`, `error_count`, `model`) are
+ * patched in place after the reducer creates the agent — they don't
+ * have natural hook envelopes that would set them in one pass.
+ *
+ * Returns counts of recovered vs skipped sub-agents for logging.
+ */
+export async function backfillSessionSubagents(
+  store: Store,
+  sessionId: string,
+  subagentsDir: string,
+  cutoffMs: number,
+  receivedAt: string,
+): Promise<{ recovered: number; skipped: number }> {
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(subagentsDir, { withFileTypes: true });
+  } catch {
+    return { recovered: 0, skipped: 0 };
+  }
+
+  const pairs = new Map<string, { meta?: string; jsonl?: string }>();
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const m = entry.name.match(/^agent-(.+)\.meta\.json$/);
+    if (m?.[1]) {
+      const id = m[1];
+      const pair = pairs.get(id) ?? {};
+      pair.meta = path.join(subagentsDir, entry.name);
+      pairs.set(id, pair);
+      continue;
+    }
+    const j = entry.name.match(/^agent-(.+)\.jsonl$/);
+    if (j?.[1]) {
+      const id = j[1];
+      const pair = pairs.get(id) ?? {};
+      pair.jsonl = path.join(subagentsDir, entry.name);
+      pairs.set(id, pair);
+    }
+  }
+
+  let recovered = 0;
+  let skipped = 0;
+
+  for (const [agentId, { meta: metaPath, jsonl: jsonlPath }] of pairs) {
+    if (!metaPath) continue;
+
+    let metaMtime = 0;
+    let jsonlMtime = 0;
+    try {
+      const ms = await fs.stat(metaPath);
+      metaMtime = ms.mtimeMs;
+    } catch {
+      continue;
+    }
+    if (jsonlPath) {
+      try {
+        const js = await fs.stat(jsonlPath);
+        jsonlMtime = js.mtimeMs;
+      } catch {
+        // jsonl unreadable; we can still recover from meta alone.
+      }
+    }
+    if (metaMtime < cutoffMs && jsonlMtime < cutoffMs) {
+      skipped++;
+      continue;
+    }
+
+    let metaRaw: unknown;
+    try {
+      metaRaw = JSON.parse(await fs.readFile(metaPath, "utf8"));
+    } catch (err) {
+      logger.warn({ err: String(err), metaPath }, "subagent meta parse failed");
+      continue;
+    }
+    const meta = parseSubagentMeta(agentId, metaRaw);
+    if (!meta) continue;
+
+    let transcript: ReturnType<typeof parseSubagentTranscript> = {
+      tool_calls_count: 0,
+      error_count: 0,
+    };
+    if (jsonlPath) {
+      try {
+        const content = await fs.readFile(jsonlPath, "utf8");
+        const parsed: unknown[] = [];
+        for (const line of content.split("\n")) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            parsed.push(JSON.parse(trimmed));
+          } catch {
+            // skip malformed line
+          }
+        }
+        transcript = parseSubagentTranscript(parsed);
+      } catch (err) {
+        logger.warn({ err: String(err), jsonlPath }, "subagent transcript read failed");
+      }
+    }
+
+    const agentType = meta.agentType ?? "general-purpose";
+    const description = meta.description;
+    const prompt = transcript.prompt;
+    const startedAt = transcript.started_at ?? receivedAt;
+    const lastEventAt = transcript.last_event_at ?? startedAt;
+
+    // 1. PreToolUse(Agent) — populates the FIFO queue with description + prompt.
+    if (description !== undefined) {
+      reduce(store, {
+        received_at: startedAt,
+        payload: {
+          hook_event_name: "PreToolUse",
+          session_id: sessionId,
+          cwd: "",
+          transcript_path: "",
+          tool_name: "Agent",
+          tool_use_id: `backfill-${agentId}`,
+          tool_input: {
+            description,
+            ...(prompt !== undefined ? { prompt } : {}),
+            subagent_type: agentType,
+          },
+        },
+      });
+    }
+
+    // 2. SubagentStart — reducer creates the agent and pops the FIFO entry.
+    reduce(store, {
+      received_at: startedAt,
+      payload: {
+        hook_event_name: "SubagentStart",
+        session_id: sessionId,
+        cwd: "",
+        transcript_path: "",
+        agent_id: agentId,
+        agent_type: agentType,
+        agent_transcript_path: jsonlPath ?? "",
+      },
+    });
+
+    // 3. Patch numeric counters + model (no natural hook envelope for these).
+    const session = store.sessions.get(sessionId);
+    const agent = session?.agents[agentId];
+    if (agent) {
+      agent.tool_calls_count = transcript.tool_calls_count;
+      agent.error_count = transcript.error_count;
+      if (transcript.model !== undefined) agent.model = transcript.model;
+    }
+
+    // 4. SubagentStop — mark ended.
+    reduce(store, {
+      received_at: lastEventAt,
+      payload: {
+        hook_event_name: "SubagentStop",
+        session_id: sessionId,
+        cwd: "",
+        transcript_path: "",
+        agent_id: agentId,
+        agent_type: agentType,
+        agent_transcript_path: jsonlPath ?? "",
+      },
+    });
+
+    recovered++;
+  }
+
+  return { recovered, skipped };
+}
+
 export async function runBackfill(store: Store): Promise<void> {
   const home = process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
   const projectsDir = path.join(home, "projects");

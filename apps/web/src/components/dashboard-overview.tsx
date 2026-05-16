@@ -34,7 +34,7 @@ function errorSummary(session: SessionState): string {
 }
 
 function attentionReason(session: SessionState): string | undefined {
-  if (session.status === "waiting_for_human") return session.waiting_reason;
+  if (session.status === "blocked") return session.waiting_reason;
   if (session.status === "error") return errorSummary(session);
   return undefined;
 }
@@ -102,7 +102,7 @@ export function DashboardOverview() {
   const { attention, running } = useMemo(() => {
     const all = Object.values(sessions);
     const attention = all
-      .filter((s) => s.status === "waiting_for_human" || s.status === "error")
+      .filter((s) => s.status === "blocked" || s.status === "error")
       .sort((a, b) => {
         const ua = statusUrgency(a.status);
         const ub = statusUrgency(b.status);

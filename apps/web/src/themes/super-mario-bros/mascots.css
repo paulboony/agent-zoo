@@ -42,7 +42,8 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 [data-testid="status-awaiting_user"],
-[data-testid="status-waiting_for_human"] {
+[data-testid="status-blocked"],
+[data-testid="status-stale"] {
   color: #1a1a1a;
 }
 

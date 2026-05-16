@@ -236,7 +236,7 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   }
 
   sessionDraft.status = rollupSessionStatus(sessionDraft.agents);
-  if (sessionDraft.status !== "waiting_for_human") {
+  if (sessionDraft.status !== "blocked") {
     // biome-ignore lint/performance/noDelete: local draft, never observed by subscribers
     delete sessionDraft.waiting_reason;
   }
@@ -306,7 +306,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
         subtype === "idle_prompt" ||
         subtype === "elicitation_dialog"
       ) {
-        agent.status = "waiting_for_human";
+        agent.status = "blocked";
         session.waiting_reason = payload.message ?? subtype;
       }
       break;
@@ -314,7 +314,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
 
     case "PermissionRequest":
     case "Elicitation":
-      agent.status = "waiting_for_human";
+      agent.status = "blocked";
       session.waiting_reason = payload.message ?? event;
       break;
 

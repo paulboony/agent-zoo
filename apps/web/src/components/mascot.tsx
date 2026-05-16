@@ -8,13 +8,15 @@ export function statusToMascotState(status: AgentStatus): MascotState {
   switch (status) {
     case "running":
       return "running";
-    case "waiting_for_human":
+    case "blocked":
       return "waiting";
     case "error":
       return "error";
     case "ended":
       return "ended";
     case "awaiting_user":
+      return "idle";
+    case "stale":
       return "idle";
   }
 }

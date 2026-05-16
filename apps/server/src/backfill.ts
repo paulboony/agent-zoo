@@ -8,7 +8,6 @@ import { buildEndedSubAgent, reduce } from "./reducer.js";
 import type { Store } from "./state.js";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 const TAIL_LINES = 200;
 
 /**
@@ -324,18 +323,6 @@ export async function runBackfill(store: Store): Promise<void> {
       await replayJsonl(store, file, mtimeMs);
     } catch (err) {
       logger.error({ err: String(err), file }, "jsonl backfill failed");
-    }
-  }
-
-  const ageLimit = THIRTY_MINUTES_MS;
-  const now = Date.now();
-  for (const session of store.sessions.values()) {
-    const last = Date.parse(session.last_event_at);
-    if (Number.isNaN(last) || now - last > ageLimit) {
-      session.status = "ended";
-      if (session.ended_at === undefined) {
-        session.ended_at = session.last_event_at;
-      }
     }
   }
 

@@ -14,6 +14,7 @@
     "--status-waiting": "#fff176",
     "--status-idle": "#d1d5db",
     "--status-error": "#e52521",
+    "--status-stale": "#9c9c9c",
     "--status-ended": "#9c27b0",
     "--border": "#291715",
     "--input": "#fff0ee",

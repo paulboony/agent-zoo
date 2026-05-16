@@ -19,13 +19,13 @@ import { StatusBadge } from "./status-badge.js";
  * Per-status visual info for the agent card:
  *  - `glyph`: shape varies so the status reads without colour.
  *  - `varName`: suffix for the matching `--status-<x>` CSS variable
- *    (`waiting_for_human` → `waiting`, because the token is
- *    `--status-waiting`).
+ *    (`blocked` → `waiting`, because the token is `--status-waiting`).
  */
 const STATUS_INFO: Record<AgentStatus, { glyph: string; varName: string }> = {
   running: { glyph: "●", varName: "running" },
-  waiting_for_human: { glyph: "◐", varName: "waiting" },
+  blocked: { glyph: "◐", varName: "waiting" },
   awaiting_user: { glyph: "○", varName: "idle" },
+  stale: { glyph: "◌", varName: "stale" },
   error: { glyph: "✗", varName: "error" },
   ended: { glyph: "⊘", varName: "ended" },
 };

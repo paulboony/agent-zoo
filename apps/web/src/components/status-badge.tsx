@@ -4,16 +4,18 @@ import type { SessionStatus } from "@agent-zoo/shared";
 
 const LABELS: Record<SessionStatus, string> = {
   running: "running",
-  waiting_for_human: "waiting",
+  blocked: "blocked",
   awaiting_user: "awaiting",
+  stale: "stale",
   ended: "ended",
   error: "error",
 };
 
 const COLOR_VARS: Record<SessionStatus, string> = {
   running: "var(--status-running)",
-  waiting_for_human: "var(--status-waiting)",
+  blocked: "var(--status-waiting)",
   awaiting_user: "var(--status-idle)",
+  stale: "var(--status-stale)",
   ended: "var(--status-ended)",
   error: "var(--status-error)",
 };

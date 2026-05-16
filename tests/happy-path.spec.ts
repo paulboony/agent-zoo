@@ -10,13 +10,13 @@ test.describe("agent-zoo happy path", () => {
     await expect(alphaCard).toBeVisible({ timeout: 5000 });
     await expect(betaCard).toBeVisible();
 
-    // beta is waiting_for_human, alpha is running → beta sorts first
+    // beta is blocked, alpha is running → beta sorts first
     const cards = page.locator('[data-testid^="session-card-"]');
     const ids = await cards.evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-testid")));
     expect(ids[0]).toBe("session-card-seed-beta");
 
     // beta status badge
-    await expect(betaCard.locator('[data-testid="status-waiting_for_human"]')).toBeVisible();
+    await expect(betaCard.locator('[data-testid="status-blocked"]')).toBeVisible();
 
     // selecting alpha opens the detail pane with the agent tree
     await alphaCard.click();
@@ -89,7 +89,7 @@ test.describe("agent-zoo happy path", () => {
   test("dashboard landing surfaces attention list + running chips", async ({ page }) => {
     await page.goto("/");
 
-    // The seed leaves seed-beta in waiting_for_human with a real reason,
+    // The seed leaves seed-beta in blocked with a real reason,
     // and seed-alpha in running. Those drive the two must-have sections.
     const attentionRow = page.getByTestId("dash-attention-seed-beta");
     await expect(attentionRow).toBeVisible();
@@ -113,7 +113,7 @@ test.describe("agent-zoo happy path", () => {
     await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
 
     const expectedSwitches = [
-      { id: "waiting_for_human", label: "Waiting for human input" },
+      { id: "blocked", label: "Needs your input" },
       { id: "session_error", label: "Session errors" },
       { id: "session_start", label: "New session starts" },
       { id: "session_complete", label: "Session completes" },

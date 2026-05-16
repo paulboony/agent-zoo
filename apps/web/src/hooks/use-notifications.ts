@@ -23,7 +23,7 @@ export function setNotificationsEnabled(enabled: boolean): void {
 }
 
 export type NotificationEvent =
-  | "waiting_for_human"
+  | "blocked"
   | "session_error"
   | "session_start"
   | "session_complete"
@@ -32,7 +32,7 @@ export type NotificationEvent =
 export type NotificationPrefs = Record<NotificationEvent, boolean>;
 
 const PREF_KEYS: Record<NotificationEvent, string> = {
-  waiting_for_human: "dashboard.notifications.waiting_for_human",
+  blocked: "dashboard.notifications.blocked",
   session_error: "dashboard.notifications.session_error",
   session_start: "dashboard.notifications.session_start",
   session_complete: "dashboard.notifications.session_complete",
@@ -40,7 +40,7 @@ const PREF_KEYS: Record<NotificationEvent, string> = {
 };
 
 const DEFAULT_PREFS: NotificationPrefs = {
-  waiting_for_human: true,
+  blocked: true,
   session_error: true,
   session_start: false,
   session_complete: false,
@@ -59,7 +59,7 @@ function readPref(event: NotificationEvent): boolean {
 
 export function getNotificationPrefs(): NotificationPrefs {
   return {
-    waiting_for_human: readPref("waiting_for_human"),
+    blocked: readPref("blocked"),
     session_error: readPref("session_error"),
     session_start: readPref("session_start"),
     session_complete: readPref("session_complete"),
@@ -142,9 +142,9 @@ function dispatchNotifications(t: SessionTransition): void {
   }
 
   if (
-    prefs.waiting_for_human &&
-    prevStatus !== "waiting_for_human" &&
-    session.status === "waiting_for_human"
+    prefs.blocked &&
+    prevStatus !== "blocked" &&
+    session.status === "blocked"
   ) {
     const body = session.waiting_reason ?? "Waiting for input";
     fire(session, {

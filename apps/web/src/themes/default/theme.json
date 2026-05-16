@@ -14,6 +14,7 @@
     "--status-waiting": "oklch(0.78 0.18 70)",
     "--status-idle": "oklch(0.6 0.04 270)",
     "--status-error": "oklch(0.65 0.22 25)",
+    "--status-stale": "oklch(0.45 0.04 270)",
     "--status-ended": "oklch(0.42 0.04 270)",
     "--border": "rgba(226, 225, 218, 0.15)",
     "--input": "oklch(0.28 0.02 280)",

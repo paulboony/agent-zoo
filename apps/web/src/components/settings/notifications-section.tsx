@@ -7,7 +7,7 @@ import {
 import { useEffect, useState } from "react";
 
 const EVENTS: { event: NotificationEvent; label: string }[] = [
-  { event: "waiting_for_human", label: "Waiting for human input" },
+  { event: "blocked", label: "Needs your input" },
   { event: "session_error", label: "Session errors" },
   { event: "session_start", label: "New session starts" },
   { event: "session_complete", label: "Session completes" },

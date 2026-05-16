@@ -58,8 +58,9 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 [data-testid="status-waiting"],
-[data-testid="status-waiting_for_human"],
+[data-testid="status-blocked"],
 [data-testid="status-awaiting_user"],
+[data-testid="status-stale"],
 [data-testid="status-error"] {
   color: #1a1a1a;
 }

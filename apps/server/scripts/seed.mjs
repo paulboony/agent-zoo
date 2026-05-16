@@ -130,7 +130,7 @@ async function demo() {
     id: "alpha-writer-1",
     description: "Write notification spec",
     prompt:
-      "Draft a spec for the notifications settings page. Cover master toggle, per-event switches, focus suppression, and the requireInteraction policy for waiting_for_human and session_error.",
+      "Draft a spec for the notifications settings page. Cover master toggle, per-event switches, focus suppression, and the requireInteraction policy for blocked and session_error.",
   });
 
   await sleep(150);

@@ -1,4 +1,10 @@
-export type AgentStatus = "running" | "waiting_for_human" | "awaiting_user" | "ended" | "error";
+export type AgentStatus =
+  | "running"
+  | "blocked"
+  | "awaiting_user"
+  | "stale"
+  | "ended"
+  | "error";
 
 export type SessionStatus = AgentStatus;
 
@@ -59,10 +65,11 @@ export interface SessionState {
 }
 
 const STATUS_RANK: Record<SessionStatus, number> = {
-  error: 4,
-  waiting_for_human: 3,
-  running: 2,
-  awaiting_user: 1,
+  error: 5,
+  blocked: 4,
+  running: 3,
+  awaiting_user: 2,
+  stale: 1,
   ended: 0,
 };
 

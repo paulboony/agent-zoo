@@ -157,28 +157,10 @@ function DefaultAgentCard({
   );
 }
 
-/**
- * Phantom sub-agents are Claude-Code-internal book-keeping entries
- * that hit our hook handler with an `agent_id` but never go through
- * the normal `PreToolUse(Agent) → SubagentStart` flow. They surface
- * after stream-recovery / background-task housekeeping and look like:
- *   - missing or empty `agent_type` (older sessions stored `""`
- *     before the reducer normalised it away)
- *   - zero `tool_calls_count`
- * Real sub-agents always carry an `agent_type` from `SubagentStart`,
- * so this combined check excludes the phantoms cleanly. We avoid
- * filtering at the store level (the events still arrive, they just
- * aren't useful to display).
- */
-function isPhantomAgent(agent: AgentState): boolean {
-  return !agent.agent_type && agent.tool_calls_count === 0;
-}
-
 function SubAgentSection({ subs }: { subs: AgentState[] }) {
   const [showEnded, setShowEnded] = useState(false);
-  const realSubs = subs.filter((s) => !isPhantomAgent(s));
 
-  const active = realSubs
+  const active = subs
     .filter((s) => s.status !== "ended")
     .sort((a, b) => {
       const ua = statusUrgency(a.status);
@@ -187,7 +169,7 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
       return Date.parse(b.last_event_at) - Date.parse(a.last_event_at);
     });
 
-  const ended = realSubs
+  const ended = subs
     .filter((s) => s.status === "ended")
     .sort((a, b) => {
       const aTs = a.ended_at ?? a.last_event_at;

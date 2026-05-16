@@ -187,6 +187,15 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
         ? payload.agent_type
         : undefined;
     const agentType = rawAgentType ? rawAgentType : undefined;
+    // Phantom guard: a payload that creates a NEW sub-agent (not "main")
+    // but carries no agent_type is Claude Code stream-recovery /
+    // background-housekeeping noise (typically a SubagentStop arriving
+    // without its SubagentStart). Real sub-agents always carry
+    // agent_type on SubagentStart. Drop the event silently — returning
+    // null avoids touching the store or broadcasting.
+    if (agentId !== "main" && agentType === undefined) {
+      return null;
+    }
     agent = {
       id: agentId,
       ...omitUndefined({ agent_type: agentType }),

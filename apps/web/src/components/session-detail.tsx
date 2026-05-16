@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button.js";
 import { Card } from "@/components/ui/card.js";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
@@ -13,6 +12,7 @@ import { statusUrgency } from "@agent-zoo/shared";
 import { useState } from "react";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
+import { PromptPopover } from "./prompt-popover.js";
 import { StatusBadge } from "./status-badge.js";
 
 /**
@@ -135,21 +135,11 @@ function DefaultAgentCard({
           </Tooltip>
         )}
         {agent.prompt && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <p className="line-clamp-2 cursor-pointer whitespace-pre-wrap break-words text-left text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
-                <span aria-hidden="true" className="mr-1 select-none text-fg/40">›</span>
-                {agent.prompt}
-              </p>
-            </PopoverTrigger>
-            <PopoverContent
-              side="right"
-              align="start"
-              className="max-h-[60vh] w-md max-w-[90vw] overflow-y-auto whitespace-pre-wrap break-words p-3 text-sm"
-            >
-              {agent.prompt}
-            </PopoverContent>
-          </Popover>
+          <PromptPopover
+            prompt={agent.prompt}
+            prefix="›"
+            triggerClassName="line-clamp-2 cursor-pointer text-left text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+          />
         )}
         <div className="truncate font-mono text-fg/50 text-xs">{stats}</div>
       </div>

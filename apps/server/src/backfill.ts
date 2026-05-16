@@ -125,12 +125,11 @@ export function parseSubagentTranscript(entries: unknown[]): {
 
 /**
  * Walk one session's `subagents/` directory and recover every
- * sub-agent inside as `status: "ended"`. Synthesises the same hook
- * envelopes the live reducer expects so the agent's `label`, `prompt`,
- * and lifecycle timestamps follow the same code path as live events.
- * Numeric counters (`tool_calls_count`, `error_count`, `model`) are
- * patched in place after the reducer creates the agent — they don't
- * have natural hook envelopes that would set them in one pass.
+ * sub-agent inside as `status: "ended"`. Each recovered sub-agent is
+ * constructed directly via `buildEndedSubAgent` (no synthetic hook
+ * envelopes) and merged into a freshly-built session aggregate,
+ * mirroring the reducer's build-then-commit pattern so live SSE
+ * subscribers see either old or new state, never partial.
  *
  * Returns counts of recovered vs skipped sub-agents for logging.
  */

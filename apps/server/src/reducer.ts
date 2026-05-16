@@ -2,6 +2,81 @@ import path from "node:path";
 import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent-zoo/shared";
 import { rollupSessionStatus } from "@agent-zoo/shared";
 import type { Store } from "./state.js";
+import { omitUndefined } from "./util.js";
+
+/**
+ * A pending sub-agent dispatch captured between PreToolUse and
+ * SubagentStart. Used internally by the reducer to thread description
+ * + prompt from the parent's tool call onto the spawned sub-agent.
+ */
+export interface PendingSubagent {
+  description: string;
+  prompt?: string;
+  subagent_type: string;
+}
+
+/**
+ * Reducer-private correlation buffers. Owned by `reduce()`; no other
+ * code path should read or write these.
+ *
+ *   - `pending_subagents`: Task-tool dispatches keyed by tool_use_id.
+ *     Task tool uses its tool_use_id as the spawned agent's agent_id,
+ *     so id-based correlation works on SubagentStart.
+ *   - `pending_agent_dispatches`: FIFO queue of Agent-tool dispatches.
+ *     The Agent tool's tool_use_id ("toolu_XXX") differs from the
+ *     SDK-side agent_id ("aXXX"), so order-based correlation is used
+ *     when the keyed lookup misses.
+ */
+export interface ReducerState {
+  pending_subagents: Map<string, Map<string, PendingSubagent>>;
+  pending_agent_dispatches: Map<string, PendingSubagent[]>;
+}
+
+export function createReducerState(): ReducerState {
+  return {
+    pending_subagents: new Map(),
+    pending_agent_dispatches: new Map(),
+  };
+}
+
+/**
+ * Construct a sub-agent in the `"ended"` state from data recovered from
+ * disk (backfill). The shape mirrors what the live reducer would produce
+ * after SubagentStart → SubagentStop, including ended_at and the full
+ * set of derived counters. Optional fields (label, prompt, model) are
+ * omitted when not provided, not set to undefined.
+ *
+ * Used by `backfillSessionSubagents` so it doesn't have to synthesise
+ * fake hook envelopes to reconstruct sub-agents.
+ */
+export function buildEndedSubAgent(input: {
+  id: string;
+  agent_type: string;
+  label?: string;
+  prompt?: string;
+  tool_calls_count: number;
+  error_count: number;
+  model?: string;
+  started_at: string;
+  last_event_at: string;
+  ended_at: string;
+}): AgentState {
+  return {
+    id: input.id,
+    agent_type: input.agent_type,
+    ...omitUndefined({
+      label: input.label,
+      prompt: input.prompt,
+      model: input.model,
+    }),
+    status: "ended",
+    started_at: input.started_at,
+    last_event_at: input.last_event_at,
+    ended_at: input.ended_at,
+    tool_calls_count: input.tool_calls_count,
+    error_count: input.error_count,
+  };
+}
 
 /**
  * Extract { description, prompt, subagent_type } from a Task/Agent
@@ -25,52 +100,32 @@ function readDispatchInput(toolInput: unknown):
 }
 
 function captureTaskDispatch(
-  store: Store,
+  reducerState: ReducerState,
   sessionId: string,
   toolUseId: string,
   toolInput: unknown,
 ): void {
   const dispatch = readDispatchInput(toolInput);
   if (!dispatch) return;
-  let perSession = store.pending_subagents.get(sessionId);
+  let perSession = reducerState.pending_subagents.get(sessionId);
   if (!perSession) {
     perSession = new Map();
-    store.pending_subagents.set(sessionId, perSession);
+    reducerState.pending_subagents.set(sessionId, perSession);
   }
   perSession.set(toolUseId, dispatch);
 }
 
-function captureAgentDispatch(store: Store, sessionId: string, toolInput: unknown): void {
+function captureAgentDispatch(
+  reducerState: ReducerState,
+  sessionId: string,
+  toolInput: unknown,
+): void {
   const dispatch = readDispatchInput(toolInput);
   if (!dispatch) return;
-  let queue = store.pending_agent_dispatches.get(sessionId);
+  let queue = reducerState.pending_agent_dispatches.get(sessionId);
   if (!queue) {
     queue = [];
-    store.pending_agent_dispatches.set(sessionId, queue);
-  }
-  queue.push(dispatch);
-}
-
-/**
- * Public helper for non-hook code paths (notably backfill) that need to
- * pre-populate the Agent-tool FIFO queue without going through the
- * reducer's main `applyTransition` flow.
- *
- * Used by `backfillSessionSubagents` so a recovered sub-agent's
- * description + prompt are still attached via `consumePendingSubagent`
- * on the synthetic `SubagentStart` event, but without the side-effect
- * of incrementing the main agent's tool-call counter and flipping its
- * status back to running.
- */
-export function enqueueAgentDispatch(
-  store: Store,
-  sessionId: string,
-  dispatch: { description: string; prompt?: string; subagent_type: string },
-): void {
-  let queue = store.pending_agent_dispatches.get(sessionId);
-  if (!queue) {
-    queue = [];
-    store.pending_agent_dispatches.set(sessionId, queue);
+    reducerState.pending_agent_dispatches.set(sessionId, queue);
   }
   queue.push(dispatch);
 }
@@ -82,25 +137,25 @@ export function enqueueAgentDispatch(
  * agent_id distinct from its API tool_use_id — order-based match).
  */
 function consumePendingSubagent(
-  store: Store,
+  reducerState: ReducerState,
   sessionId: string,
   agentId: string,
 ): { description: string; prompt?: string } | undefined {
-  const perSession = store.pending_subagents.get(sessionId);
+  const perSession = reducerState.pending_subagents.get(sessionId);
   const pending = perSession?.get(agentId);
   if (pending) {
     perSession?.delete(agentId);
     return {
       description: pending.description,
-      ...(pending.prompt !== undefined ? { prompt: pending.prompt } : {}),
+      ...omitUndefined({ prompt: pending.prompt }),
     };
   }
-  const queue = store.pending_agent_dispatches.get(sessionId);
+  const queue = reducerState.pending_agent_dispatches.get(sessionId);
   const head = queue?.shift();
   if (head) {
     return {
       description: head.description,
-      ...(head.prompt !== undefined ? { prompt: head.prompt } : {}),
+      ...omitUndefined({ prompt: head.prompt }),
     };
   }
   return undefined;
@@ -112,19 +167,21 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
 
   const sessionId = payload.session_id;
   const existing = store.sessions.get(sessionId);
-  const session: SessionState = existing
+
+  // 1. Build a local draft of the session. Every mutation below targets
+  //    this draft, never store state, so a throw mid-reduce leaves the
+  //    store untouched.
+  const sessionDraft: SessionState = existing
     ? { ...existing, agents: { ...existing.agents } }
     : createSession(payload, received_at);
 
-  session.last_event_at = received_at;
+  sessionDraft.last_event_at = received_at;
 
   const agentId = pickAgentId(payload);
-  const existingAgent = session.agents[agentId];
+  const existingAgent = sessionDraft.agents[agentId];
+
   let agent: AgentState;
   if (!existingAgent) {
-    // Some Claude Code phantom events (stream-recovery / background
-    // housekeeping) send `agent_type: ""` — treat empty string as
-    // missing so the field stays absent for real comparisons.
     const rawAgentType =
       "agent_type" in payload && typeof payload.agent_type === "string"
         ? payload.agent_type
@@ -132,18 +189,15 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
     const agentType = rawAgentType ? rawAgentType : undefined;
     agent = {
       id: agentId,
-      ...(agentType !== undefined ? { agent_type: agentType } : {}),
+      ...omitUndefined({ agent_type: agentType }),
       status: "running",
       started_at: received_at,
       last_event_at: received_at,
       tool_calls_count: 0,
       error_count: 0,
     };
-    // Carry the parent's Task description over to the new sub-agent. Hook
-    // ordering is PreToolUse(Task) → SubagentStart, so by the time we reach
-    // here the description is already in the pending buffer (if there was one).
     if (payload.hook_event_name === "SubagentStart") {
-      const pending = consumePendingSubagent(store, sessionId, agentId);
+      const pending = consumePendingSubagent(store.reducerState, sessionId, agentId);
       if (pending !== undefined) {
         agent.label = pending.description;
         if (pending.prompt !== undefined) agent.prompt = pending.prompt;
@@ -154,39 +208,42 @@ export function reduce(store: Store, env: HookEnvelope): SessionState | null {
   }
 
   agent.last_event_at = received_at;
-  applyTransition(agent, session, payload);
-  session.agents[agentId] = agent;
+  applyTransition(agent, sessionDraft, payload);
+  sessionDraft.agents[agentId] = agent;
 
-  // Stash sub-agent dispatch metadata so the eventual SubagentStart can
-  // pick it up. The Task tool (Claude Code SDK) uses its tool_use_id as
-  // the spawned agent's agent_id → we can correlate by id. The Agent
-  // tool (Claude API) uses a Claude API tool_use_id ("toolu_XXX") that
-  // does NOT match the SDK-side agent_id ("aXXX"); we queue those and
-  // pop FIFO on SubagentStart instead.
+  // 2. Reducer-private state changes: capture pending dispatches.
+  //    These touch `store.reducerState`, not the session aggregate.
   if (payload.hook_event_name === "PreToolUse") {
     if (payload.tool_name === "Task") {
-      captureTaskDispatch(store, sessionId, payload.tool_use_id, payload.tool_input);
+      captureTaskDispatch(
+        store.reducerState,
+        sessionId,
+        payload.tool_use_id,
+        payload.tool_input,
+      );
     } else if (payload.tool_name === "Agent") {
-      captureAgentDispatch(store, sessionId, payload.tool_input);
+      captureAgentDispatch(store.reducerState, sessionId, payload.tool_input);
     }
   }
 
-  session.status = rollupSessionStatus(session.agents);
-  if (session.status !== "waiting_for_human") {
-    // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
-    delete session.waiting_reason;
+  sessionDraft.status = rollupSessionStatus(sessionDraft.agents);
+  if (sessionDraft.status !== "waiting_for_human") {
+    // biome-ignore lint/performance/noDelete: local draft, never observed by subscribers
+    delete sessionDraft.waiting_reason;
   }
-  if (session.status === "ended") {
-    session.ended_at = received_at;
-  }
-  if (payload.hook_event_name === "SessionEnd") {
-    store.pending_subagents.delete(sessionId);
-    store.pending_agent_dispatches.delete(sessionId);
+  if (sessionDraft.status === "ended") {
+    sessionDraft.ended_at = received_at;
   }
 
-  store.sessions.set(sessionId, session);
+  // 3. Commit. From here down, every write is a no-throw operation.
+  store.sessions.set(sessionId, sessionDraft);
+  if (payload.hook_event_name === "SessionEnd") {
+    store.reducerState.pending_subagents.delete(sessionId);
+    store.reducerState.pending_agent_dispatches.delete(sessionId);
+  }
   store.recent_events.push(payload);
-  return session;
+
+  return sessionDraft;
 }
 
 function pickAgentId(payload: HookPayload): string {

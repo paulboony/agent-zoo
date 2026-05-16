@@ -2,9 +2,9 @@ import { promises as fs } from "node:fs";
 import type { Dirent } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AgentState, HookEnvelope, HookPayload } from "@agent-zoo/shared";
+import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent-zoo/shared";
 import { logger } from "./logger.js";
-import { enqueueAgentDispatch, reduce } from "./reducer.js";
+import { buildEndedSubAgent, reduce } from "./reducer.js";
 import type { Store } from "./state.js";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -229,61 +229,47 @@ export async function backfillSessionSubagents(
     }
 
     const agentType = meta.agentType ?? "general-purpose";
-    const description = meta.description;
-    const prompt = transcript.prompt;
     const startedAt = transcript.started_at ?? receivedAt;
     const lastEventAt = transcript.last_event_at ?? startedAt;
 
-    // 1. Pre-populate the FIFO queue so the synthesised SubagentStart
-    //    below pops the description + prompt onto the new agent. We use
-    //    the named helper rather than synthesising a PreToolUse(Agent)
-    //    envelope through `reduce()`, because that envelope would lack
-    //    an `agent_id` and incorrectly increment the main agent's
-    //    tool_calls_count / flip its status to running.
-    if (description !== undefined) {
-      enqueueAgentDispatch(store, sessionId, {
-        description,
-        ...(prompt !== undefined ? { prompt } : {}),
-        subagent_type: agentType,
-      });
+    const existingSession = store.sessions.get(sessionId);
+    if (!existingSession) {
+      // Backfill is keyed off recovered main sessions; this should not
+      // happen in practice but we skip to keep the invariant clean.
+      continue;
     }
 
-    // 2. SubagentStart — reducer creates the agent and pops the FIFO entry.
-    reduce(store, {
-      received_at: startedAt,
-      payload: {
-        hook_event_name: "SubagentStart",
-        session_id: sessionId,
-        cwd: "",
-        transcript_path: "",
-        agent_id: agentId,
-        agent_type: agentType,
-        agent_transcript_path: jsonlPath ?? "",
-      },
-    });
-
-    // 3. Patch numeric counters + model (no natural hook envelope for these).
-    const session = store.sessions.get(sessionId);
-    const agent = session?.agents[agentId];
-    if (agent) {
-      agent.tool_calls_count = transcript.tool_calls_count;
-      agent.error_count = transcript.error_count;
-      if (transcript.model !== undefined) agent.model = transcript.model;
+    // Skip if a live hook already populated this sub-agent.
+    if (existingSession.agents[agentId] !== undefined) {
+      recovered++;
+      continue;
     }
 
-    // 4. SubagentStop — mark ended.
-    reduce(store, {
-      received_at: lastEventAt,
-      payload: {
-        hook_event_name: "SubagentStop",
-        session_id: sessionId,
-        cwd: "",
-        transcript_path: "",
-        agent_id: agentId,
-        agent_type: agentType,
-        agent_transcript_path: jsonlPath ?? "",
-      },
+    const recoveredAgent = buildEndedSubAgent({
+      id: agentId,
+      agent_type: agentType,
+      ...(meta.description !== undefined ? { label: meta.description } : {}),
+      ...(transcript.prompt !== undefined ? { prompt: transcript.prompt } : {}),
+      tool_calls_count: transcript.tool_calls_count,
+      error_count: transcript.error_count,
+      ...(transcript.model !== undefined ? { model: transcript.model } : {}),
+      started_at: startedAt,
+      last_event_at: lastEventAt,
+      ended_at: lastEventAt,
     });
+
+    // Build a fresh session aggregate with the new agent merged in,
+    // mirroring the reducer's "build then commit" pattern so live SSE
+    // subscribers see either old or new state, never partial.
+    const nextSession: SessionState = {
+      ...existingSession,
+      agents: { ...existingSession.agents, [agentId]: recoveredAgent },
+      last_event_at:
+        lastEventAt > existingSession.last_event_at
+          ? lastEventAt
+          : existingSession.last_event_at,
+    };
+    store.sessions.set(sessionId, nextSession);
 
     recovered++;
   }

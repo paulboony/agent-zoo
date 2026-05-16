@@ -1,4 +1,5 @@
 import type { HookPayload, SessionState, SseMessage } from "@agent-zoo/shared";
+import { type ReducerState, createReducerState } from "./reducer.js";
 
 export interface CircularBuffer<T> {
   push(item: T): void;
@@ -24,33 +25,17 @@ export function createCircularBuffer<T>(capacity: number): CircularBuffer<T> {
   };
 }
 
-export interface PendingSubagent {
-  description: string;
-  prompt?: string;
-  subagent_type: string;
-}
-
 export interface Store {
   sessions: Map<string, SessionState>;
   seq: number;
   subscribers: Set<(msg: SseMessage) => void>;
   recent_events: CircularBuffer<HookPayload>;
   /**
-   * Per-session correlation buffer: tool_use_id → Task input. Populated
-   * on the parent's PreToolUse for the **Task** tool (which uses its
-   * tool_use_id as the spawned agent's agent_id), consumed when the
-   * matching SubagentStart arrives, cleared when the session ends.
+   * Reducer-private correlation buffers. Owned by `reduce()`. Other
+   * code paths should NOT read or write this directly — go through
+   * the reducer.
    */
-  pending_subagents: Map<string, Map<string, PendingSubagent>>;
-  /**
-   * Per-session FIFO queue of Agent-tool dispatches. The Agent tool's
-   * tool_use_id (Claude API "toolu_XXX") does NOT match its spawned
-   * agent_id (SDK "aXXX"), so we can't key by id. Instead the queue is
-   * popped in order on each unmatched SubagentStart — Claude Code
-   * dispatches sub-agents sequentially within one main agent, so
-   * order-based correlation is reliable in practice.
-   */
-  pending_agent_dispatches: Map<string, PendingSubagent[]>;
+  reducerState: ReducerState;
 }
 
 export function createStore(): Store {
@@ -59,8 +44,7 @@ export function createStore(): Store {
     seq: 0,
     subscribers: new Set(),
     recent_events: createCircularBuffer<HookPayload>(1000),
-    pending_subagents: new Map(),
-    pending_agent_dispatches: new Map(),
+    reducerState: createReducerState(),
   };
 }
 

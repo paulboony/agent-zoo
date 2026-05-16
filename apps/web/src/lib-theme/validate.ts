@@ -1,5 +1,4 @@
-import type { AgentKind } from "@agent-zoo/shared";
-import type { Theme } from "./types.js";
+import type { MascotKind, Theme } from "./types.js";
 
 const REQUIRED_TOKENS = [
   "--bg",
@@ -13,7 +12,7 @@ const REQUIRED_TOKENS = [
   "--status-error",
 ];
 
-const REQUIRED_KINDS: AgentKind[] = [
+const REQUIRED_KINDS: MascotKind[] = [
   "main",
   "code-reviewer",
   "explorer",

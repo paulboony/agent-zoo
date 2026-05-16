@@ -1,4 +1,4 @@
-import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import type { SessionTransition } from "@/lib/store.js";
 import { useStore } from "@/lib/store.js";
 import type { SessionState } from "@agent-zoo/shared";

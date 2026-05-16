@@ -47,8 +47,8 @@ for sessions whose backfill missed it.
 
 | Goal | File |
 |---|---|
-| Add an `AgentKind` | `packages/shared/src/state.ts` (union) + theme `mascots/<kind>.svg` for each SVG theme + `rows.<kind>` in each sprite theme + `validate.ts` REQUIRED_KINDS + `registry.ts` KIND_FILES + optionally a rule in `lib/agent-kind.ts` LABEL_RULES |
-| Add a label → mascot rule | `apps/web/src/lib/agent-kind.ts` (LABEL_RULES) |
+| Add a `MascotKind` | `apps/web/src/lib-theme/types.ts` (union) + theme `mascots/<kind>.svg` for each SVG theme + `rows.<kind>` in each sprite theme + `validate.ts` REQUIRED_KINDS + `registry.ts` KIND_FILES + optionally a rule in `lib/mascot-kind.ts` LABEL_RULES |
+| Add a label → mascot rule | `apps/web/src/lib/mascot-kind.ts` (LABEL_RULES) |
 | Add a notification event | `use-notifications.ts` (PREF_KEYS + DEFAULT_PREFS + dispatchNotifications) + `notifications-section.tsx` EVENTS + spec types |
 | Add a theme | New folder under `apps/web/src/themes/<id>/` with `theme.json`, `mascots.css`, `preview.png`, `mascots/*.svg` for SVG mode or `mascots/sprites.png` for sprite mode |
 | Add a hook event | `packages/shared/src/hooks.ts` HookEventName + `reducer.ts` applyTransition case |
@@ -59,7 +59,7 @@ for sessions whose backfill missed it.
   or `"sprite"` (one `mascots/sprites.png` plus a `mascot_sprite` spec
   in `theme.json`).
 - Sprite spec: `cell { width, height }`, optional `gap { x?, y? }` and
-  `padding { x?, y? }`, `rows: Record<AgentKind, number>`, `states:
+  `padding { x?, y? }`, `rows: Record<MascotKind, number>`, `states:
   Record<MascotState, { frames: number[]; fps? }>`. Each state's
   `frames` is an array of column indices (can be non-contiguous).
 - Mascot CSS variables (`--row`, `--frame-N`, `--stride-x/y`, `--pad-x/y`,
@@ -67,7 +67,7 @@ for sessions whose backfill missed it.
   `mascots.css` only needs the keyframes (`sprite-2`, `sprite-3`,
   `sprite-4`) — `<Mascot>` does the math.
 - UI mascot kind is resolved by `resolveDisplayKind(agent)` in
-  `apps/web/src/lib/agent-kind.ts`. Order: `main` → label regex match →
+  `apps/web/src/lib/mascot-kind.ts`. Order: `main` → label regex match →
   `"general"`. Label is the parent's Task `tool_input.description`,
   correlated by `tool_use_id` == `subagent.agent_id` in `reducer.ts`.
 
@@ -118,7 +118,7 @@ Two suites:
 - `agent_type` is the raw Claude Code subagent type string (e.g.
   `"general-purpose"`, `"Explore"`). The UI mascot kind is derived
   client-side from `agent.label` via `resolveDisplayKind` — see
-  `apps/web/src/lib/agent-kind.ts`. `agent.label` (description) is
+  `apps/web/src/lib/mascot-kind.ts`. `agent.label` (description) is
   preferred for display text too.
 - `SubagentStop` sets `agent.status = "ended"` (not `"idle"` — a
   prior fix). Ended sub-agents are hidden behind a toggle in

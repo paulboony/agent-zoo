@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
-import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { useActiveTheme } from "@/lib-theme/context.js";
 import { formatDuration } from "@/lib/time.js";
 import type { AgentState, AgentStatus, SessionState } from "@agent-zoo/shared";

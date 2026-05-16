@@ -2,8 +2,6 @@ export type AgentStatus = "running" | "waiting_for_human" | "awaiting_user" | "e
 
 export type SessionStatus = AgentStatus;
 
-export type AgentKind = "main" | "code-reviewer" | "explorer" | "writer" | "coder" | "general";
-
 export interface AgentState {
   /** SubAgentFields.agent_id from SubagentStart/Stop; "main" for the parent agent. */
   id: string;

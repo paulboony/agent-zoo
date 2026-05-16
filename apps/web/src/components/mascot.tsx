@@ -1,6 +1,7 @@
 import { useActiveTheme } from "@/lib-theme/context.js";
 import type { Theme } from "@/lib-theme/types.js";
-import type { AgentKind, AgentStatus } from "@agent-zoo/shared";
+import type { AgentStatus } from "@agent-zoo/shared";
+import type { MascotKind } from "@/lib-theme/types.js";
 
 import type { MascotState } from "@/lib-theme/types.js";
 export type { MascotState };
@@ -21,7 +22,7 @@ export function statusToMascotState(status: AgentStatus): MascotState {
 }
 
 interface Props {
-  kind: AgentKind;
+  kind: MascotKind;
   state: MascotState;
   size?: number;
 }
@@ -41,7 +42,7 @@ function SvgMascot({
   size,
 }: {
   theme: Theme;
-  kind: AgentKind;
+  kind: MascotKind;
   state: MascotState;
   size: number;
 }) {
@@ -69,7 +70,7 @@ function SpriteMascot({
   size,
 }: {
   theme: Theme;
-  kind: AgentKind;
+  kind: MascotKind;
   state: MascotState;
   size: number;
 }) {

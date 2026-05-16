@@ -1,6 +1,19 @@
-import type { AgentKind } from "@agent-zoo/shared";
 import type { ComponentType } from "react";
 import type { AgentCardProps } from "./agent-card-props.js";
+
+/**
+ * Display-side taxonomy for mascots. Each `AgentState` is mapped to a
+ * `MascotKind` client-side via `resolveDisplayKind` (label-regex match,
+ * fallback `"general"`). The server has no opinion on this taxonomy —
+ * it produces `agent_type` strings, not mascot kinds.
+ */
+export type MascotKind =
+  | "main"
+  | "code-reviewer"
+  | "explorer"
+  | "writer"
+  | "coder"
+  | "general";
 
 export type ThemeTokens = Record<string, string>;
 
@@ -43,7 +56,7 @@ export interface MascotSpriteSpec {
   gap?: SpriteGap;
   /** Offset from the top-left corner of the image to the first cell. Defaults to 0,0. */
   padding?: SpritePadding;
-  rows: Record<AgentKind, number>;
+  rows: Record<MascotKind, number>;
   states: Record<MascotState, SpriteStateRange>;
 }
 
@@ -62,7 +75,7 @@ export interface Theme {
   name: string;
   author?: string;
   tokens: ThemeTokens;
-  mascots: Record<AgentKind, string>;
+  mascots: Record<MascotKind, string>;
   mascotsCss: string;
   previewUrl: string;
   notificationSoundUrl?: string;

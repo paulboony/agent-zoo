@@ -74,9 +74,9 @@ See [`CLAUDE.md`](CLAUDE.md) and `docs/` for architecture details.
 | What | Where |
 | --- | --- |
 | New theme | Folder under `apps/web/src/themes/<id>/` with `theme.json`, `mascots.css`, `preview.png`, and either `mascots/<kind>.svg` files (svg mode) or `mascots/sprites.png` + `mascot_sprite` spec (sprite mode) |
-| Label-driven mascot rule | Append to `LABEL_RULES` in `apps/web/src/lib/agent-kind.ts` |
+| Label-driven mascot rule | Append to `LABEL_RULES` in `apps/web/src/lib/mascot-kind.ts` |
 | Notification event | `apps/web/src/hooks/use-notifications.ts` (keys, defaults, dispatcher) and `apps/web/src/components/settings/notifications-section.tsx` (EVENTS array) |
-| Agent kind | `packages/shared/src/state.ts` `AgentKind` union, plus per-theme assets |
+| Mascot kind | `apps/web/src/lib-theme/types.ts` `MascotKind` union, plus per-theme assets |
 
 ## License
 

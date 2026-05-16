@@ -52,7 +52,7 @@ Default values to propose (override only if the user contradicts):
 - `gap` — many sheets have `0,0`. Some have spacing between cells.
 - `padding` — empty border around the grid. Often `0,0`; sometimes
   `8,8` or similar.
-- `rows` — one entry per `AgentKind`. The current set is
+- `rows` — one entry per `MascotKind`. The current set is
   `main`, `code-reviewer`, `explorer`, `writer`, `coder`, `general`.
   Map every kind. If unsure, point them all at row 0 — the user can
   tune individual rows later.
@@ -202,7 +202,7 @@ commit body (the byte size will change; reviewers might wonder).
   folder, `final-fantasy-v` id) — but they don't have to. The registry
   uses `manifest.id` as the key, not the folder name.
 
-- **`rows` must have an entry for every `AgentKind`** in the union, or
+- **`rows` must have an entry for every `MascotKind`** in the union, or
   the validator will warn at startup (`"mascot_sprite.rows missing
   entry for kind '<x>'"`).
 

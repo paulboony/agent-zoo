@@ -1,5 +1,5 @@
-import type { AgentKind, AgentState } from "@agent-zoo/shared";
-import type { MascotState } from "./types.js";
+import type { AgentState } from "@agent-zoo/shared";
+import type { MascotKind, MascotState } from "./types.js";
 
 /**
  * View-model for a single agent card. The default `<AgentNode>` and any
@@ -12,7 +12,7 @@ export interface AgentCardProps {
   /** True when this is the session's main agent (`id === "main"`). */
   isMain: boolean;
   /** Mascot kind to display (label rules → "general" fallback). */
-  displayKind: AgentKind;
+  displayKind: MascotKind;
   /** Mascot animation state mapped from `agent.status`. */
   mascotState: MascotState;
   /** "Read" / "last: Read" / null — current-tool or last-tool label. */

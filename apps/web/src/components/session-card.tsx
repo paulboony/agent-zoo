@@ -1,7 +1,7 @@
 import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
 import { useNow } from "@/hooks/use-now.js";
-import { resolveDisplayKind } from "@/lib/agent-kind.js";
+import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
 import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";

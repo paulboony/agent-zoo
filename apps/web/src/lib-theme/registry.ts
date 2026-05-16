@@ -1,7 +1,6 @@
-import type { AgentKind } from "@agent-zoo/shared";
 import type { ComponentType } from "react";
 import type { AgentCardProps } from "./agent-card-props.js";
-import type { Theme, ThemeManifest } from "./types.js";
+import type { MascotKind, Theme, ThemeManifest } from "./types.js";
 
 type EagerStringRecord = Record<string, string>;
 
@@ -38,7 +37,7 @@ const agentCardModules = import.meta.glob<{ default: ComponentType<AgentCardProp
   { eager: true },
 );
 
-const KIND_FILES: Record<AgentKind, string> = {
+const KIND_FILES: Record<MascotKind, string> = {
   main: "main.svg",
   "code-reviewer": "code-reviewer.svg",
   explorer: "explorer.svg",
@@ -61,8 +60,8 @@ function buildRegistry(): Record<string, Theme> {
     const spriteKey = `${folder}/mascots/sprites.png`;
     const agentCardKey = `${folder}/agent-card.tsx`;
 
-    const mascots = {} as Record<AgentKind, string>;
-    for (const kind of Object.keys(KIND_FILES) as AgentKind[]) {
+    const mascots = {} as Record<MascotKind, string>;
+    for (const kind of Object.keys(KIND_FILES) as MascotKind[]) {
       const svgKey = `${folder}/mascots/${KIND_FILES[kind]}`;
       mascots[kind] = mascotModules[svgKey] ?? "";
     }

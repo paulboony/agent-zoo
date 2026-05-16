@@ -1,18 +1,19 @@
-import type { AgentKind, AgentState } from "@agent-zoo/shared";
+import type { AgentState } from "@agent-zoo/shared";
+import type { MascotKind } from "@/lib-theme/types.js";
 
 /**
- * UI-side mascot rules. Each rule maps a label pattern to an AgentKind.
+ * UI-side mascot rules. Each rule maps a label pattern to a MascotKind.
  * Order matters — the first match wins.
  *
  * Why label-based instead of agent_type-based: in real usage almost every
  * sub-agent is dispatched with `subagent_type: "general-purpose"` (the
- * server resolves that to `kind: "general"`), so the user-supplied
- * description on the parent's Task tool is the only signal of what the
- * sub-agent is actually doing.
+ * server resolves that to `agent_type: "general-purpose"`), so the
+ * user-supplied description on the parent's Task tool is the only signal
+ * of what the sub-agent is actually doing.
  *
  * Add or tweak rules here; nothing else needs to change.
  */
-const LABEL_RULES: { pattern: RegExp; kind: AgentKind }[] = [
+const LABEL_RULES: { pattern: RegExp; kind: MascotKind }[] = [
   // Reviewers / auditors. Caught before coder/writer so "spec review" or
   // "code review" land on the reviewer mascot.
   { pattern: /review|audit|critique|inspect/i, kind: "code-reviewer" },
@@ -29,7 +30,7 @@ const LABEL_RULES: { pattern: RegExp; kind: AgentKind }[] = [
  * first; falls back to `"general"` when no label matches (which is the
  * common case, since most sub-agents are `general-purpose`).
  */
-export function resolveDisplayKind(agent: AgentState): AgentKind {
+export function resolveDisplayKind(agent: AgentState): MascotKind {
   if (agent.id === "main") return "main";
   if (agent.label) {
     for (const rule of LABEL_RULES) {

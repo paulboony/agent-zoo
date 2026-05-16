@@ -75,9 +75,9 @@ for sessions whose backfill missed it.
 
 - Master bell in the header gates everything (`localStorage["dashboard.notifications.enabled"]`).
 - Five per-event prefs under `localStorage["dashboard.notifications.<event>"]`:
-  `waiting_for_human`, `session_error`, `session_start`, `session_complete`, `subagent_spawn`.
+  `blocked`, `session_error`, `session_start`, `session_complete`, `subagent_spawn`.
 - Events are edge-triggered against `lastTransition.prevStatus` / `isNew` / `newAgentIds`.
-- `session_error` and `waiting_for_human` bypass focus-suppression and use
+- `session_error` and `blocked` bypass focus-suppression and use
   `requireInteraction: true` so banners persist.
 - Foreground-tab only — no Web Push, no service worker.
 

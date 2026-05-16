@@ -1,4 +1,4 @@
-export type AgentStatus = "running" | "waiting_for_human" | "idle" | "ended" | "error";
+export type AgentStatus = "running" | "waiting_for_human" | "awaiting_user" | "ended" | "error";
 
 export type SessionStatus = AgentStatus;
 
@@ -64,12 +64,12 @@ const STATUS_RANK: Record<SessionStatus, number> = {
   error: 4,
   waiting_for_human: 3,
   running: 2,
-  idle: 1,
+  awaiting_user: 1,
   ended: 0,
 };
 
 export function rollupSessionStatus(agents: Record<string, AgentState>): SessionStatus {
-  let best: SessionStatus = "idle";
+  let best: SessionStatus = "awaiting_user";
   let bestRank = -1;
   for (const a of Object.values(agents)) {
     const r = STATUS_RANK[a.status];

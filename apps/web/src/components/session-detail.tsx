@@ -25,7 +25,7 @@ import { StatusBadge } from "./status-badge.js";
 const STATUS_INFO: Record<AgentStatus, { glyph: string; varName: string }> = {
   running: { glyph: "●", varName: "running" },
   waiting_for_human: { glyph: "◐", varName: "waiting" },
-  idle: { glyph: "○", varName: "idle" },
+  awaiting_user: { glyph: "○", varName: "idle" },
   error: { glyph: "✗", varName: "error" },
   ended: { glyph: "⊘", varName: "ended" },
 };

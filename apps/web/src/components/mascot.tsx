@@ -15,7 +15,7 @@ export function statusToMascotState(status: AgentStatus): MascotState {
       return "error";
     case "ended":
       return "ended";
-    case "idle":
+    case "awaiting_user":
       return "idle";
   }
 }

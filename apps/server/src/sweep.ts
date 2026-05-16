@@ -18,7 +18,7 @@ export function startStaleSweep(store: Store): NodeJS.Timeout {
       if (Number.isNaN(last) || now - last < limitMs) continue;
       const next = {
         ...session,
-        status: "idle" as const,
+        status: "awaiting_user" as const,
         current_activity: `stale: no events for ${limitMin}m`,
       };
       store.sessions.set(id, next);

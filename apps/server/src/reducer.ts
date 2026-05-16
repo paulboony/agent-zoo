@@ -350,7 +350,7 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
     }
 
     case "Stop":
-      agent.status = "idle";
+      agent.status = "awaiting_user";
       break;
 
     case "SubagentStart":

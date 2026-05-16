@@ -67,7 +67,7 @@ h1, h2, h3, h4, h5, h6 {
 [data-testid="status-running"]            { color: var(--status-running); }
 [data-testid="status-waiting"],
 [data-testid="status-waiting_for_human"]  { color: var(--status-waiting); }
-[data-testid="status-idle"]               { color: var(--status-idle); }
+[data-testid="status-awaiting_user"]      { color: var(--status-idle); }
 [data-testid="status-error"]              { color: var(--status-error); }
 [data-testid="status-ended"]              { color: var(--status-ended); }
 

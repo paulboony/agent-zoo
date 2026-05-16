@@ -18,13 +18,15 @@ export function startStaleSweep(store: Store): NodeJS.Timeout {
       if (Number.isNaN(last) || now - last < limitMs) continue;
       const next = {
         ...session,
+        // TODO(group-c): "awaiting_user" here conflates "stale" with "post-Stop
+        // paused-on-user". Group C will split these into a distinct "stale" status.
         status: "awaiting_user" as const,
         current_activity: `stale: no events for ${limitMin}m`,
       };
       store.sessions.set(id, next);
       store.seq += 1;
       emit(store, { type: "session_upsert", seq: store.seq, session: next });
-      logger.info({ id }, "session swept to idle (stale)");
+      logger.info({ id }, "session swept to awaiting_user (stale)");
     }
   }, 60_000);
 

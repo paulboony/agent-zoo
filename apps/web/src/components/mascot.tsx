@@ -1,9 +1,7 @@
 import { useActiveTheme } from "@/lib-theme/context.js";
-import type { Theme } from "@/lib-theme/types.js";
+import type { MascotKind, MascotState, Theme } from "@/lib-theme/types.js";
 import type { AgentStatus } from "@agent-zoo/shared";
-import type { MascotKind } from "@/lib-theme/types.js";
 
-import type { MascotState } from "@/lib-theme/types.js";
 export type { MascotState };
 
 export function statusToMascotState(status: AgentStatus): MascotState {

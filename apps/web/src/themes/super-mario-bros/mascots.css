@@ -41,7 +41,7 @@ h1, h2, h3, h4, h5, h6 {
 [data-testid="status-ended"] {
   color: #ffffff;
 }
-[data-testid="status-idle"],
+[data-testid="status-awaiting_user"],
 [data-testid="status-waiting_for_human"] {
   color: #1a1a1a;
 }

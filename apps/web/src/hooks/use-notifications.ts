@@ -23,29 +23,119 @@ export function setNotificationsEnabled(enabled: boolean): void {
 }
 
 export type NotificationEvent =
-  | "blocked"
-  | "session_error"
   | "session_start"
+  | "session_error"
   | "session_complete"
+  | "blocked"
   | "subagent_spawn";
 
 export type NotificationPrefs = Record<NotificationEvent, boolean>;
 
-const PREF_KEYS: Record<NotificationEvent, string> = {
-  blocked: "dashboard.notifications.blocked",
-  session_error: "dashboard.notifications.session_error",
-  session_start: "dashboard.notifications.session_start",
-  session_complete: "dashboard.notifications.session_complete",
-  subagent_spawn: "dashboard.notifications.subagent_spawn",
+type NotificationContent = {
+  title: string;
+  body: string;
+  tag?: string;
+  /**
+   * If true, fire even when the user is currently viewing this session.
+   * Used by you-must-act events (errors, blocked-on-user).
+   */
+  ignoreFocus?: boolean;
+  /**
+   * Pass-through to the Notification API. When true the banner stays on
+   * screen until the user dismisses it instead of auto-fading.
+   */
+  requireInteraction?: boolean;
 };
 
-const DEFAULT_PREFS: NotificationPrefs = {
-  blocked: true,
-  session_error: true,
-  session_start: false,
-  session_complete: false,
-  subagent_spawn: false,
-};
+interface NotificationRule {
+  event: NotificationEvent;
+  defaultEnabled: boolean;
+  /** Compute zero-or-more notifications to fire for this transition. */
+  trigger: (t: SessionTransition) => NotificationContent[];
+}
+
+/**
+ * The set of notification rules, in display order. Adding a new event:
+ *   1. add a new entry here,
+ *   2. add the literal to the NotificationEvent union above,
+ *   3. add a switch row in notifications-section.tsx for the label.
+ * `PREF_KEYS`, `DEFAULT_PREFS`, and `getNotificationPrefs` are derived
+ * from this array.
+ */
+const NOTIFICATION_RULES: NotificationRule[] = [
+  {
+    event: "session_start",
+    defaultEnabled: false,
+    trigger: ({ session, isNew }) =>
+      isNew
+        ? [{ title: "Session started", body: session.cwd_basename }]
+        : [],
+  },
+  {
+    event: "session_error",
+    defaultEnabled: true,
+    trigger: ({ session, prevStatus }) =>
+      prevStatus !== "error" && session.status === "error"
+        ? [
+            {
+              title: `${session.cwd_basename} error`,
+              body:
+                session.agents.main?.last_tool_input_summary ??
+                "Something went wrong",
+              ignoreFocus: true,
+              requireInteraction: true,
+            },
+          ]
+        : [],
+  },
+  {
+    event: "session_complete",
+    defaultEnabled: false,
+    trigger: ({ session, prevStatus }) =>
+      prevStatus !== "ended" && session.status === "ended"
+        ? [{ title: `${session.cwd_basename} done`, body: "Session ended" }]
+        : [],
+  },
+  {
+    event: "blocked",
+    defaultEnabled: true,
+    trigger: ({ session, prevStatus }) =>
+      prevStatus !== "blocked" && session.status === "blocked"
+        ? [
+            {
+              title: `${session.cwd_basename} needs you`,
+              body: session.waiting_reason ?? "Waiting for input",
+              ignoreFocus: true,
+              requireInteraction: true,
+            },
+          ]
+        : [],
+  },
+  {
+    event: "subagent_spawn",
+    defaultEnabled: false,
+    trigger: ({ session, newAgentIds }) =>
+      newAgentIds.flatMap((agentId) => {
+        const agent = session.agents[agentId];
+        if (!agent) return [];
+        return [
+          {
+            title: `New ${resolveDisplayKind(agent)} agent`,
+            body: session.cwd_basename,
+            tag: `${session.id}:${agentId}`,
+          },
+        ];
+      }),
+  },
+];
+
+const PREF_KEYS: Record<NotificationEvent, string> = Object.fromEntries(
+  NOTIFICATION_RULES.map((r) => [r.event, `dashboard.notifications.${r.event}`]),
+) as Record<NotificationEvent, string>;
+
+const DEFAULT_PREFS: NotificationPrefs = Object.fromEntries(
+  NOTIFICATION_RULES.map((r) => [r.event, r.defaultEnabled]),
+) as NotificationPrefs;
 
 function readPref(event: NotificationEvent): boolean {
   try {
@@ -58,13 +148,9 @@ function readPref(event: NotificationEvent): boolean {
 }
 
 export function getNotificationPrefs(): NotificationPrefs {
-  return {
-    blocked: readPref("blocked"),
-    session_error: readPref("session_error"),
-    session_start: readPref("session_start"),
-    session_complete: readPref("session_complete"),
-    subagent_spawn: readPref("subagent_spawn"),
-  };
+  return Object.fromEntries(
+    NOTIFICATION_RULES.map((r) => [r.event, readPref(r.event)]),
+  ) as NotificationPrefs;
 }
 
 export function setNotificationPref(event: NotificationEvent, value: boolean): void {
@@ -79,22 +165,6 @@ function focusedSessionIdFromUrl(): string | null {
   const match = /^\/sessions\/([^/?#]+)/.exec(window.location.pathname);
   return match?.[1] ?? null;
 }
-
-type NotificationContent = {
-  title: string;
-  body: string;
-  tag?: string;
-  /**
-   * If true, fire even when the user is currently viewing this session.
-   * Used by you-must-act events (errors, waiting-for-human).
-   */
-  ignoreFocus?: boolean;
-  /**
-   * Pass-through to the Notification API. When true the banner stays on
-   * screen until the user dismisses it instead of auto-fading.
-   */
-  requireInteraction?: boolean;
-};
 
 function fire(session: SessionState, content: NotificationContent): void {
   if (typeof Notification === "undefined") return;
@@ -118,63 +188,19 @@ function fire(session: SessionState, content: NotificationContent): void {
   }
 }
 
-function dispatchNotifications(t: SessionTransition): void {
-  const { session, prevStatus, isNew, newAgentIds } = t;
+export function dispatchNotifications(t: SessionTransition): void {
   const prefs = getNotificationPrefs();
-
-  if (isNew && prefs.session_start) {
-    fire(session, { title: "Session started", body: session.cwd_basename });
-  }
-
-  if (prefs.session_error && prevStatus !== "error" && session.status === "error") {
-    const body =
-      session.agents.main?.last_tool_input_summary ?? "Something went wrong";
-    fire(session, {
-      title: `${session.cwd_basename} error`,
-      body,
-      ignoreFocus: true,
-      requireInteraction: true,
-    });
-  }
-
-  if (prefs.session_complete && prevStatus !== "ended" && session.status === "ended") {
-    fire(session, { title: `${session.cwd_basename} done`, body: "Session ended" });
-  }
-
-  if (
-    prefs.blocked &&
-    prevStatus !== "blocked" &&
-    session.status === "blocked"
-  ) {
-    const body = session.waiting_reason ?? "Waiting for input";
-    fire(session, {
-      title: `${session.cwd_basename} needs you`,
-      body,
-      ignoreFocus: true,
-      requireInteraction: true,
-    });
-  }
-
-  if (prefs.subagent_spawn && newAgentIds.length > 0) {
-    for (const agentId of newAgentIds) {
-      const agent = session.agents[agentId];
-      if (!agent) continue;
-      fire(session, {
-        title: `New ${resolveDisplayKind(agent)} agent`,
-        body: session.cwd_basename,
-        tag: `${session.id}:${agentId}`,
-      });
+  for (const rule of NOTIFICATION_RULES) {
+    if (!prefs[rule.event]) continue;
+    for (const content of rule.trigger(t)) {
+      fire(t.session, content);
     }
   }
 }
 
 export function useNotifications(): void {
+  const lastTransition = useStore((s) => s.lastTransition);
   useEffect(() => {
-    const unsubscribe = useStore.subscribe((state, prev) => {
-      const t = state.lastTransition;
-      if (!t || t === prev.lastTransition) return;
-      dispatchNotifications(t);
-    });
-    return unsubscribe;
-  }, []);
+    if (lastTransition) dispatchNotifications(lastTransition);
+  }, [lastTransition]);
 }

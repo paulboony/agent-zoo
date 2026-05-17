@@ -55,7 +55,11 @@ interface NotificationRule {
 }
 
 /**
- * The set of notification rules, in display order. Adding a new event:
+ * The set of notification rules, in evaluation order. (The settings
+ * page's `EVENTS` table in `notifications-section.tsx` controls
+ * display order; the two are independent.)
+ *
+ * Adding a new event:
  *   1. add a new entry here,
  *   2. add the literal to the NotificationEvent union above,
  *   3. add a switch row in notifications-section.tsx for the label.

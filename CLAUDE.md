@@ -128,6 +128,32 @@ Two suites:
   a dev-server restart (not just HMR) to be discovered.
 - `useNow` uses a singleton interval via `useSyncExternalStore`. Every
   card subscribes; only one timer runs.
+- shadcn commands run from the monorepo root require `-c apps/web`,
+  e.g. `npx shadcn@latest info -c apps/web`. Without it: "You are
+  running info from a monorepo root."
+- Preview MCP click/eval failures (`Inspected target navigated or
+  closed`, `Failed to click element …`) are almost always timing —
+  click before hydration, or navigation racing the eval. Wait ≥800ms
+  after a navigation/click before asserting DOM state, and reproduce
+  in Chrome before assuming there's a code bug. `location.reload()`
+  in `preview_eval` is a last resort, not a debugging step.
+
+## Workflow rules
+
+- This is a personal repo (`paulboony/agent-zoo`), not an etrainu
+  repo. `gh` must be authed as `paulboony` before any PR work — check
+  `gh auth status` if a `gh pr create` returns "Repository not found".
+- Default branch is `master`, not `main`. Use `master..HEAD` for diffs.
+- **Don't commit style / UI / theme changes until Paul previews and
+  explicitly says "commit" or "merge".** Iterate freely on edits — the
+  preview is the source of truth, and a commit before preview means
+  reverting. This rule overrides any "checkpoint your work" instinct.
+- When working in a git worktree under `.claude/worktrees/<id>/`,
+  **never edit paths under the main tree** (`/Users/paul/git/paulboony/agent-zoo/apps/...`).
+  The dev server reads from the worktree; edits outside it won't
+  show up in preview and silently diverge. Verify with `pwd` at
+  session start. If you need to move work between trees, commit and
+  fast-forward — don't `cp`.
 
 ## Docs
 

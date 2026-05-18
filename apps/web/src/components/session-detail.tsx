@@ -91,7 +91,7 @@ function DefaultAgentCard({
   const stats = statParts.join(" · ");
 
   return (
-    <Card className="flex w-full flex-row items-start gap-3 rounded-md px-3 py-2.5">
+    <Card className="flex h-full w-full flex-row items-start gap-3 rounded-md px-3 py-2.5">
       <Mascot kind={displayKind} state={mascotState} size={40} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex min-w-0 items-baseline gap-2">
@@ -183,7 +183,7 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
         ))}
         {showEnded &&
           ended.map((s) => (
-            <div key={s.id} className="opacity-50">
+            <div key={s.id} className="h-full opacity-50">
               <AgentNode agent={s} size={64} />
             </div>
           ))}

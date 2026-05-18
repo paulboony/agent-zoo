@@ -6,6 +6,22 @@ import { useEffect } from "react";
 
 const ENABLED_KEY = "dashboard.notifications.enabled";
 
+type NotificationNavigator = (to: string) => void;
+
+let activeNavigator: NotificationNavigator | null = null;
+
+/**
+ * Register the SPA's navigate function so notification clicks can
+ * route within the app instead of doing a full-page load. Pass `null`
+ * on unmount to release the reference.
+ *
+ * Called by `<NotificationsBoundary>` in App.tsx with `useNavigate()`
+ * from react-router-dom.
+ */
+export function setNotificationNavigator(nav: NotificationNavigator | null): void {
+  activeNavigator = nav;
+}
+
 export function isNotificationsEnabled(): boolean {
   try {
     return localStorage.getItem(ENABLED_KEY) === "true";
@@ -182,11 +198,16 @@ function fire(session: SessionState, content: NotificationContent): void {
   }
 
   try {
-    new Notification(content.title, {
+    const notif = new Notification(content.title, {
       body: content.body,
       tag: content.tag ?? session.id,
       requireInteraction: content.requireInteraction ?? false,
     });
+    notif.onclick = () => {
+      window.focus();
+      activeNavigator?.(`/sessions/${session.id}`);
+      notif.close();
+    };
   } catch {
     // permission state can race; ignore
   }

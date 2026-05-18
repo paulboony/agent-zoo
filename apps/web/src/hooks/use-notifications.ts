@@ -11,6 +11,28 @@ type NotificationNavigator = (to: string) => void;
 let activeNavigator: NotificationNavigator | null = null;
 
 /**
+ * Banners we've fired that haven't been dismissed yet. Each banner
+ * attaches an `onclose` handler in `fire()` that removes itself
+ * from this set when dismissed (whether by click, by the
+ * visibilitychange auto-dismiss below, by OS timeout, or manually).
+ */
+const openNotifications = new Set<Notification>();
+
+/**
+ * Close every banner currently open. Each `close()` call triggers
+ * the Notification's `onclose` handler which removes it from
+ * `openNotifications` — so this drains the set as a side effect.
+ *
+ * Called from the visibilitychange listener in `useNotifications()`
+ * so that returning to the dashboard tab tidies up stale banners.
+ */
+function dismissAllOpen(): void {
+  for (const notif of openNotifications) {
+    notif.close();
+  }
+}
+
+/**
  * Register the SPA's navigate function so notification clicks can
  * route within the app instead of doing a full-page load. Pass `null`
  * on unmount to release the reference.
@@ -208,6 +230,10 @@ function fire(session: SessionState, content: NotificationContent): void {
       activeNavigator?.(`/sessions/${session.id}`);
       notif.close();
     };
+    notif.onclose = () => {
+      openNotifications.delete(notif);
+    };
+    openNotifications.add(notif);
   } catch {
     // permission state can race; ignore
   }
@@ -228,4 +254,13 @@ export function useNotifications(): void {
   useEffect(() => {
     if (lastTransition) dispatchNotifications(lastTransition);
   }, [lastTransition]);
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === "visible") {
+        dismissAllOpen();
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
 }

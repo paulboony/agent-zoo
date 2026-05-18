@@ -40,7 +40,7 @@ export default function FFAgentCard(props: AgentCardProps) {
     <div
       data-slot="card"
       data-testid="ff-agent-card"
-      className="relative flex w-full flex-col gap-2 p-3 font-mono text-card-foreground"
+      className="relative flex h-full w-full flex-col gap-2 p-3 font-mono text-card-foreground"
     >
       <div className="flex items-center gap-3">
         <Mascot kind={displayKind} state={mascotState} size={size} />

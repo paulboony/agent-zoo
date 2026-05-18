@@ -48,7 +48,7 @@ export default function SMBAgentCard(props: AgentCardProps) {
     <div
       data-slot="card"
       data-testid="smb-agent-card"
-      className="relative flex w-full flex-col overflow-hidden bg-card p-0 text-card-foreground"
+      className="relative flex h-full w-full flex-col overflow-hidden bg-card p-0 text-card-foreground"
     >
       <div className="grid grid-cols-4 gap-2 bg-black px-2 py-1.5 text-[10px] font-bold tracking-widest text-white uppercase">
         <HudStat label="KIND" value={kindLabel} />
@@ -58,8 +58,8 @@ export default function SMBAgentCard(props: AgentCardProps) {
       </div>
       <div className="flex flex-col items-center gap-2 p-3">
         <Mascot kind={displayKind} state={mascotState} size={size} />
-        <div className="text-center">
-          <div className="font-bold text-sm">{name}</div>
+        <div className="w-full text-center">
+          <div className="truncate font-bold text-sm">{name}</div>
           {agent.label && agent.agent_type && (
             <div className="text-fg/60 text-xs">{agent.agent_type}</div>
           )}

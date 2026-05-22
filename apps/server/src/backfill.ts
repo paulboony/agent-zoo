@@ -5,7 +5,7 @@ import path from "node:path";
 import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent-zoo/shared";
 import { logger } from "./logger.js";
 import { buildEndedSubAgent, reduce } from "./reducer.js";
-import type { Store } from "./state.js";
+import { type Store, emit } from "./state.js";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const TAIL_LINES = 200;
@@ -369,6 +369,7 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
   const lines = content.split("\n").filter((l) => l.trim().length > 0);
   const tail = lines.slice(-TAIL_LINES);
   const touchedSessionIds = new Set<string>();
+  const discoveredModels = new Map<string, string>();
 
   for (const line of tail) {
     let entry: unknown;
@@ -386,24 +387,32 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
     reduce(store, env);
     touchedSessionIds.add(synth.payload.session_id);
     const model = extractModel(entry);
-    if (model) {
-      const session = store.sessions.get(synth.payload.session_id);
-      const main = session?.agents.main;
-      if (main) main.model = model;
-    }
+    if (model) discoveredModels.set(synth.payload.session_id, model);
   }
 
-  // Bump last_event_at on every touched session to the file's mtime when newer.
-  // The JSONL is written for tool calls and tool results too — events we
-  // intentionally skip during synthesis but which still indicate liveness.
+  // Apply the model patch and the last_event_at bump by rebuilding fresh
+  // SessionState objects. Mirrors the reducer's "build then commit"
+  // pattern — committed SessionStates are treated as immutable so the
+  // store invariant survives future callers (and post-boot subscribers).
   const fileMtimeIso = new Date(fileMtimeMs).toISOString();
   for (const sessionId of touchedSessionIds) {
     const session = store.sessions.get(sessionId);
     if (!session) continue;
+    const model = discoveredModels.get(sessionId);
+    const main = session.agents.main;
+    const modelChanged = model !== undefined && main !== undefined && main.model !== model;
     const current = Date.parse(session.last_event_at);
-    if (Number.isNaN(current) || current < fileMtimeMs) {
-      session.last_event_at = fileMtimeIso;
+    const lastEventChanged = Number.isNaN(current) || current < fileMtimeMs;
+    if (!modelChanged && !lastEventChanged) continue;
+
+    const next: SessionState = { ...session };
+    if (modelChanged && main) {
+      next.agents = { ...session.agents, main: { ...main, model } };
     }
+    if (lastEventChanged) {
+      next.last_event_at = fileMtimeIso;
+    }
+    store.sessions.set(sessionId, next);
   }
 }
 
@@ -449,12 +458,12 @@ function synthesise(entry: unknown): { timestamp: string; payload: HookPayload }
 }
 
 export async function refreshMainAgentModels(store: Store): Promise<void> {
-  const targets: { id: string; main: AgentState }[] = [];
+  const pending = new Map<string, AgentState>();
   for (const session of store.sessions.values()) {
     const main = session.agents.main;
-    if (main && !main.model) targets.push({ id: session.id, main });
+    if (main && !main.model) pending.set(session.id, main);
   }
-  if (targets.length === 0) return;
+  if (pending.size === 0) return;
 
   const home = process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
   const projectsDir = path.join(home, "projects");
@@ -467,7 +476,7 @@ export async function refreshMainAgentModels(store: Store): Promise<void> {
   }
 
   const cutoff = Date.now() - TWENTY_FOUR_HOURS_MS;
-  const pending = new Map(targets.map((t) => [t.id, t.main]));
+  const discovered = new Map<string, string>();
 
   for (const entry of entries) {
     if (pending.size === 0) break;
@@ -505,12 +514,10 @@ export async function refreshMainAgentModels(store: Store): Promise<void> {
             : typeof e.session_id === "string"
               ? e.session_id
               : undefined;
-        if (!sessionId) continue;
-        const main = pending.get(sessionId);
-        if (!main) continue;
+        if (!sessionId || !pending.has(sessionId)) continue;
         const model = extractModel(parsed);
         if (model) {
-          main.model = model;
+          discovered.set(sessionId, model);
           pending.delete(sessionId);
           break;
         }
@@ -518,6 +525,24 @@ export async function refreshMainAgentModels(store: Store): Promise<void> {
     } catch (err) {
       logger.warn({ err: String(err), file: fullPath }, "model refresh failed");
     }
+  }
+
+  // Commit through fresh SessionState objects so subscribers see either
+  // old or new state (never partial), and bump seq + emit so live SSE
+  // clients learn about the change. Mirrors the reducer's
+  // build-then-commit pattern.
+  for (const [sessionId, model] of discovered) {
+    const session = store.sessions.get(sessionId);
+    const main = session?.agents.main;
+    if (!session || !main || main.model) continue;
+    const nextMain: AgentState = { ...main, model };
+    const next: SessionState = {
+      ...session,
+      agents: { ...session.agents, main: nextMain },
+    };
+    store.sessions.set(sessionId, next);
+    store.seq += 1;
+    emit(store, { type: "session_upsert", seq: store.seq, session: next });
   }
 }
 

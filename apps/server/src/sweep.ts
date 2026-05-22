@@ -35,21 +35,46 @@ function sweep(store: Store): void {
     const age = now - last;
 
     if (age > ENDED_THRESHOLD_MS && session.status !== "ended") {
+      // End every non-ended agent too. `rollupSessionStatus` recomputes
+      // session.status from agent.status on every reduce() — if we leave
+      // agents in "running" while flipping the session to "ended", a
+      // stray late event will roll the session right back to "running".
+      // Closing the agents keeps the rollup consistent until a legit
+      // new event explicitly reanimates one.
+      const endedAt = session.ended_at ?? session.last_event_at;
+      const nextAgents: SessionState["agents"] = {};
+      for (const [aid, agent] of Object.entries(session.agents)) {
+        nextAgents[aid] =
+          agent.status === "ended"
+            ? agent
+            : { ...agent, status: "ended", ended_at: agent.ended_at ?? endedAt };
+      }
       const next: SessionState = {
         ...session,
         status: "ended",
-        ended_at: session.ended_at ?? session.last_event_at,
+        ended_at: endedAt,
+        agents: nextAgents,
       };
       commitSweep(store, id, next, "ended");
       continue;
     }
 
     if (age > STALE_THRESHOLD_MS && session.status === "running") {
+      // Same reason as above: rollup needs stale agents to keep the
+      // session stale across subsequent reduce() calls. Only the
+      // currently-running agents need flipping; ended sub-agents stay
+      // ended, blocked stays blocked, etc.
       const minutes = Math.floor(age / 60_000);
+      const nextAgents: SessionState["agents"] = {};
+      for (const [aid, agent] of Object.entries(session.agents)) {
+        nextAgents[aid] =
+          agent.status === "running" ? { ...agent, status: "stale" } : agent;
+      }
       const next: SessionState = {
         ...session,
         status: "stale",
         current_activity: `stale: no events for ${minutes}m`,
+        agents: nextAgents,
       };
       commitSweep(store, id, next, "stale");
     }

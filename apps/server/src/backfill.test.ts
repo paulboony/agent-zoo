@@ -1,11 +1,13 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { SseMessage } from "@agent-zoo/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   backfillSessionSubagents,
   parseSubagentMeta,
   parseSubagentTranscript,
+  refreshMainAgentModels,
 } from "./backfill.js";
 import { createStore, type Store } from "./state.js";
 
@@ -333,5 +335,176 @@ describe("backfillSessionSubagents", () => {
       new Date().toISOString(),
     );
     expect(result).toEqual({ recovered: 0, skipped: 0 });
+  });
+});
+
+describe("replayJsonl (via runBackfill)", () => {
+  // We exercise replayJsonl through its public entry runBackfill to keep
+  // the test on the public surface. The bug being guarded is that the
+  // post-replay main.model patch and the last_event_at bump used to
+  // mutate the already-committed SessionState object in place.
+
+  let home: string;
+  let store: Store;
+  let prevHome: string | undefined;
+
+  beforeEach(async () => {
+    home = await fs.mkdtemp(path.join(os.tmpdir(), "agent-zoo-rj-"));
+    await fs.mkdir(path.join(home, "projects", "demo"), { recursive: true });
+    prevHome = process.env.CLAUDE_HOME;
+    process.env.CLAUDE_HOME = home;
+    store = createStore();
+  });
+
+  afterEach(async () => {
+    if (prevHome === undefined) delete process.env.CLAUDE_HOME;
+    else process.env.CLAUDE_HOME = prevHome;
+    await fs.rm(home, { recursive: true, force: true });
+  });
+
+  it("does not mutate already-committed SessionState objects when patching model + last_event_at", async () => {
+    // Detection strategy: freeze every SessionState the moment it is
+    // committed via store.sessions.set. If replayJsonl tries to mutate
+    // a committed object in place (the pre-fix bug), the assignment
+    // throws in strict mode. Post-fix it must allocate a new draft and
+    // store.sessions.set that instead.
+    const sid = "sess-rj";
+    const oldTs = "2026-05-15T09:00:00.000Z";
+    const projectsDir = path.join(home, "projects", "demo");
+    const jsonl = path.join(projectsDir, `${sid}.jsonl`);
+    await fs.writeFile(
+      jsonl,
+      `${JSON.stringify({
+        type: "assistant",
+        sessionId: sid,
+        cwd: "/tmp",
+        transcriptPath: jsonl,
+        timestamp: oldTs,
+        message: { model: "claude-sonnet-4-7" },
+      })}\n`,
+    );
+
+    const origSet = store.sessions.set.bind(store.sessions);
+    store.sessions.set = (key, value) => {
+      Object.freeze(value);
+      Object.freeze(value.agents);
+      for (const a of Object.values(value.agents)) Object.freeze(a);
+      return origSet(key, value);
+    };
+
+    const { runBackfill } = await import("./backfill.js");
+    // Pre-fix: this throws because replayJsonl writes `main.model = ...`
+    // and `session.last_event_at = ...` directly onto the frozen object
+    // that reduce() just committed. Post-fix: replayJsonl builds a fresh
+    // SessionState and re-sets, so the freeze on the prior object is fine.
+    await runBackfill(store);
+
+    const committed = store.sessions.get(sid);
+    expect(committed?.agents.main?.model).toBe("claude-sonnet-4-7");
+  });
+});
+
+describe("refreshMainAgentModels", () => {
+  let home: string;
+  let store: Store;
+  let prevHome: string | undefined;
+
+  beforeEach(async () => {
+    home = await fs.mkdtemp(path.join(os.tmpdir(), "agent-zoo-rmm-"));
+    await fs.mkdir(path.join(home, "projects", "demo"), { recursive: true });
+    prevHome = process.env.CLAUDE_HOME;
+    process.env.CLAUDE_HOME = home;
+    store = createStore();
+  });
+
+  afterEach(async () => {
+    if (prevHome === undefined) delete process.env.CLAUDE_HOME;
+    else process.env.CLAUDE_HOME = prevHome;
+    await fs.rm(home, { recursive: true, force: true });
+  });
+
+  it("commits the model via a fresh SessionState and broadcasts an upsert", async () => {
+    const sid = "sess-rmm";
+    store.sessions.set(sid, {
+      id: sid,
+      cwd: "/tmp",
+      cwd_basename: "tmp",
+      started_at: "2026-05-15T10:00:00.000Z",
+      last_event_at: "2026-05-15T10:00:00.000Z",
+      status: "running",
+      agents: {
+        main: {
+          id: "main",
+          status: "running",
+          started_at: "2026-05-15T10:00:00.000Z",
+          last_event_at: "2026-05-15T10:00:00.000Z",
+          tool_calls_count: 1,
+          error_count: 0,
+        },
+      },
+    });
+    const prevSession = store.sessions.get(sid);
+    const prevSeq = store.seq;
+
+    // Write a JSONL with an assistant entry carrying the model.
+    const jsonl = path.join(home, "projects", "demo", `${sid}.jsonl`);
+    await fs.writeFile(
+      jsonl,
+      `${JSON.stringify({
+        type: "assistant",
+        sessionId: sid,
+        timestamp: new Date().toISOString(),
+        message: { model: "claude-sonnet-4-7" },
+      })}\n`,
+    );
+
+    const upserts: SseMessage[] = [];
+    store.subscribers.add((m) => upserts.push(m));
+
+    await refreshMainAgentModels(store);
+
+    // Model is set on the (new) session object in the store
+    const next = store.sessions.get(sid);
+    expect(next?.agents.main?.model).toBe("claude-sonnet-4-7");
+    // Store invariant: committing a change must allocate a new SessionState
+    expect(next).not.toBe(prevSession);
+    // seq bumped and an upsert broadcast so SSE clients learn about the change
+    expect(store.seq).toBe(prevSeq + 1);
+    expect(upserts).toHaveLength(1);
+    expect(upserts[0]).toMatchObject({
+      type: "session_upsert",
+      seq: prevSeq + 1,
+    });
+  });
+
+  it("does not emit when no targets have missing models", async () => {
+    const sid = "sess-rmm-noop";
+    store.sessions.set(sid, {
+      id: sid,
+      cwd: "/tmp",
+      cwd_basename: "tmp",
+      started_at: "2026-05-15T10:00:00.000Z",
+      last_event_at: "2026-05-15T10:00:00.000Z",
+      status: "running",
+      agents: {
+        main: {
+          id: "main",
+          status: "running",
+          started_at: "2026-05-15T10:00:00.000Z",
+          last_event_at: "2026-05-15T10:00:00.000Z",
+          tool_calls_count: 0,
+          error_count: 0,
+          model: "claude-sonnet-4-7",
+        },
+      },
+    });
+    const prevSeq = store.seq;
+    const upserts: SseMessage[] = [];
+    store.subscribers.add((m) => upserts.push(m));
+
+    await refreshMainAgentModels(store);
+
+    expect(store.seq).toBe(prevSeq);
+    expect(upserts).toHaveLength(0);
   });
 });

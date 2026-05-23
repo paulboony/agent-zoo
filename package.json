@@ -40,7 +40,8 @@
     "format": "biome format --write .",
     "typecheck": "turbo run typecheck",
     "test": "playwright test",
-    "test:unit": "pnpm --filter @agent-zoo/server test"
+    "test:unit": "pnpm --filter @agent-zoo/server test",
+    "test:pack": "node scripts/smoke-pack.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

@@ -102,6 +102,12 @@ The package is published to GitHub Packages (private, scoped to
 `@paulboony`). To cut a new release:
 
 ```bash
+# Verify the packed artifact actually runs end-to-end. Pack, install
+# in a scratch tmpdir, boot the bin, hit every surface a user touches
+# (API, web static, web→API proxy, SPA fallback, POST /hook → read
+# back). Takes ~10s. Run this before every publish.
+pnpm test:pack
+
 # Bump version (edits package.json + creates a tag).
 npm version patch    # or minor / major
 

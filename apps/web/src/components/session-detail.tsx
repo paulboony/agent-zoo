@@ -13,6 +13,7 @@ import { Mascot, statusToMascotState } from "./mascot.js";
 import { PromptPopover } from "./prompt-popover.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
+import { WorktreeBadge } from "./worktree-badge.js";
 
 /**
  * Per-status visual info for the agent card:
@@ -230,7 +231,10 @@ export function SessionDetail({ session }: { session: SessionState }) {
   return (
     <div className="flex h-full flex-col">
       <div className="p-4">
-        <h2 className="font-semibold text-lg">{session.cwd_basename}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-lg">{session.cwd_basename}</h2>
+          <WorktreeBadge session={session} withLabel />
+        </div>
         <p className="text-fg/60 text-xs">{session.cwd}</p>
         <div className="mt-2 flex items-center gap-2">
           <StatusBadge status={session.status} />

@@ -6,6 +6,7 @@ import type { AgentState, HookEnvelope, HookPayload, SessionState } from "@agent
 import { logger } from "./logger.js";
 import { buildEndedSubAgent, reduce } from "./reducer.js";
 import { type Store, emit } from "./state.js";
+import { applyWorktreeInfo, detectWorktree } from "./worktree.js";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const TAIL_LINES = 200;
@@ -353,6 +354,11 @@ export async function runBackfill(store: Store): Promise<void> {
     }
   }
 
+  // Worktree detection for every recovered session whose cwd we know.
+  // Bounded parallel — each call shells out to git, so we cap concurrency
+  // to keep boot fast on machines with many active sessions.
+  await detectWorktreesForSessions(store);
+
   logger.info(
     {
       files: jsonlFiles.length,
@@ -362,6 +368,37 @@ export async function runBackfill(store: Store): Promise<void> {
     },
     "backfill complete",
   );
+}
+
+const WORKTREE_CONCURRENCY = 8;
+
+async function detectWorktreesForSessions(store: Store): Promise<void> {
+  const targets: { id: string; cwd: string }[] = [];
+  for (const session of store.sessions.values()) {
+    if (session.cwd && session.is_worktree === undefined) {
+      targets.push({ id: session.id, cwd: session.cwd });
+    }
+  }
+  if (targets.length === 0) return;
+
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (cursor < targets.length) {
+      const next = targets[cursor++];
+      if (!next) break;
+      try {
+        const info = await detectWorktree(next.cwd);
+        applyWorktreeInfo(store, next.id, info);
+      } catch (err) {
+        logger.debug({ err: String(err), sid: next.id }, "worktree detect rejected");
+      }
+    }
+  }
+  const workers = Array.from(
+    { length: Math.min(WORKTREE_CONCURRENCY, targets.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
 }
 
 async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Promise<void> {

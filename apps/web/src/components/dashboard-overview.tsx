@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
+import { WorktreeBadge } from "./worktree-badge.js";
 
 /**
  * Build the "reason" string shown on an error-status attention row.
@@ -52,6 +53,7 @@ function AttentionRow({ session }: { session: SessionState }) {
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.cwd_basename}
           </span>
+          <WorktreeBadge session={session} />
           <span className="shrink-0">
             <StatusBadge status={session.status} />
           </span>
@@ -85,6 +87,7 @@ function ActiveChip({ session }: { session: SessionState }) {
     >
       <Mascot kind={kind} state="running" size={20} />
       <span className="font-medium">{session.cwd_basename}</span>
+      <WorktreeBadge session={session} />
       <span className="text-fg/50">
         · <TimeAgo iso={session.last_event_at} />
       </span>

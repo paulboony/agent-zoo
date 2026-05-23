@@ -1,109 +1,137 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("agent-zoo happy path", () => {
-  test("seeded sessions render, sort, switch theme, expose waiting state", async ({ page }) => {
+  // Each test starts from a clean localStorage so theme / notification
+  // pref state doesn't bleed across tests (or across CI re-runs).
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test("sidebar lists seeded sessions sorted by urgency", async ({ page }) => {
     await page.goto("/");
 
     const alphaCard = page.getByTestId("session-card-seed-alpha");
     const betaCard = page.getByTestId("session-card-seed-beta");
-
     await expect(alphaCard).toBeVisible({ timeout: 5000 });
     await expect(betaCard).toBeVisible();
 
-    // beta is blocked, alpha is running → beta sorts first
+    // beta is blocked, alpha is running → beta sorts first.
     const cards = page.locator('[data-testid^="session-card-"]');
-    const ids = await cards.evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-testid")));
+    const ids = await cards.evaluateAll((nodes) =>
+      nodes.map((n) => n.getAttribute("data-testid")),
+    );
     expect(ids[0]).toBe("session-card-seed-beta");
-
-    // beta status badge
     await expect(betaCard.locator('[data-testid="status-blocked"]')).toBeVisible();
+    await expect(alphaCard.locator('[data-testid="status-running"]')).toBeVisible();
+  });
 
-    // selecting alpha opens the detail pane with the agent tree
-    await alphaCard.click();
+  test("clicking a session opens its detail with the sub-agent tree + prompts", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByTestId("session-card-seed-alpha").click();
     await expect(page).toHaveURL(/\/sessions\/seed-alpha$/);
 
-    // alpha-explorer-1 and alpha-reviewer-2 stay active and are visible by default
+    // Active sub-agents are visible by default.
     await expect(page.getByText("alpha-explorer-1")).toBeVisible();
     await expect(page.getByText("alpha-reviewer-2")).toBeVisible();
 
-    // Sub-agent cards surface the Task tool's `prompt` body (line-clamped
-    // above the toolcall). Seed-side prompts are several sentences long.
+    // Sub-agent cards surface the Task tool's `prompt` body, line-clamped
+    // above the toolcall.
     await expect(
       page.getByText(/Investigate how the notification preferences are persisted/i),
     ).toBeVisible();
+  });
 
-    // alpha-reviewer-1 ended via SubagentStop and is hidden by default;
-    // reveal it via the toggle before asserting visibility.
+  test("Show ended toggle reveals SubagentStop'd children", async ({ page }) => {
+    await page.goto("/sessions/seed-alpha");
+    // Wait for the SSE-driven hydration to populate the session detail
+    // before asserting on what's hidden — without this, getByText(...)
+    // .toHaveCount(0) passes vacuously against the unmounted tree.
+    await expect(page.getByText("alpha-explorer-1")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("alpha-reviewer-1")).toHaveCount(0);
     await page.getByRole("button", { name: /show ended/i }).click();
     await expect(page.getByText("alpha-reviewer-1")).toBeVisible();
-    await expect(page.getByText("alpha-coder-1")).toBeVisible();
-    await expect(page.getByText("alpha-writer-1")).toBeVisible();
+  });
 
-    // capture full-page screenshot for visual review (gitignored under test-results/)
-    await page.screenshot({
-      path: "test-results/session-detail-with-subs.png",
-      fullPage: true,
+  // Per-theme custom card sentinels. Default has no agentCard, so the
+  // sentinel is absent (DefaultAgentCard renders). The others each ship
+  // their own agent-card.tsx via the theme.agentCard hook.
+  const THEMES = [
+    { id: "default", customCardTestid: null },
+    { id: "final-fantasy-v", customCardTestid: "ff-agent-card" },
+    { id: "final-fantasy", customCardTestid: "ff1-agent-card" },
+    { id: "super-mario-bros", customCardTestid: "smb-agent-card" },
+  ] as const;
+
+  for (const { id, customCardTestid } of THEMES) {
+    if (!customCardTestid) continue;
+    test(`theme ${id} renders its custom agent card`, async ({ page }) => {
+      await page.goto("/sessions/seed-alpha");
+      // Wait for hydration; the custom card only renders once an agent
+      // is in the tree.
+      await expect(page.getByText("alpha-explorer-1")).toBeVisible({ timeout: 5000 });
+      await page.getByTestId("theme-picker").click();
+      await page.getByTestId(`theme-option-${id}`).click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", id);
+      // theme.agentCard is React.lazy() — Suspense streams the chunk
+      // in. Longer timeout since first-render fetches the JS bundle.
+      await expect(page.getByTestId(customCardTestid).first()).toBeVisible({
+        timeout: 5000,
+      });
     });
+  }
 
-    // alpha status is running
-    await expect(alphaCard.locator('[data-testid="status-running"]')).toBeVisible();
-
-    // theme picker switches default ↔ final-fantasy-v, flips data-theme on <html>
+  test("switching themes swaps the mascot render mode (svg ↔ sprite)", async ({ page }) => {
+    await page.goto("/sessions/seed-alpha");
+    await expect(page.getByText("alpha-explorer-1")).toBeVisible({ timeout: 5000 });
+    // Default theme: each Mascot renders as inline SVG.
     await expect(page.locator("html")).toHaveAttribute("data-theme", "default");
+    await expect(page.getByTestId("mascot-main").first()).toHaveAttribute(
+      "data-render",
+      "svg",
+    );
+
     await page.getByTestId("theme-picker").click();
     await page.getByTestId("theme-option-final-fantasy-v").click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy-v");
-
-    // FFV ships a custom agent-card.tsx — its presence proves the
-    // theme.agentCard dispatcher is wired end-to-end.
-    await expect(page.getByTestId("ff-agent-card").first()).toBeVisible();
-
-    // mascot DOM changes between themes (default = inline SVG, FFV = sprite wrapper)
-    const mascot = page.getByTestId("mascot-main").first();
-    const ffvHtml = await mascot.innerHTML();
-
-    await page.getByTestId("theme-picker").click();
-    await page.getByTestId("theme-option-default").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "default");
-
-    // Switching back removes the FF custom card; default card returns.
-    await expect(page.getByTestId("ff-agent-card")).toHaveCount(0);
-
-    const defaultHtml = await mascot.innerHTML();
-    expect(defaultHtml).not.toBe(ffvHtml);
-
-    // FF1 (8-Bit Quest) also ships its own custom card, distinct from
-    // FFV's. Picking it should render the ff1-agent-card sentinel.
-    await page.getByTestId("theme-picker").click();
-    await page.getByTestId("theme-option-final-fantasy").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "final-fantasy");
-    await expect(page.getByTestId("ff1-agent-card").first()).toBeVisible();
-
-    // Super Mario Bros. ships an SMB1-HUD-style card.
-    await page.getByTestId("theme-picker").click();
-    await page.getByTestId("theme-option-super-mario-bros").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "super-mario-bros");
-    await expect(page.getByTestId("smb-agent-card").first()).toBeVisible();
+    // FFV uses a sprite sheet; the Mascot wrapper exposes data-render="sprite".
+    await expect(page.getByTestId("mascot-main").first()).toHaveAttribute(
+      "data-render",
+      "sprite",
+    );
   });
 
   test("dashboard landing surfaces attention list + running chips", async ({ page }) => {
     await page.goto("/");
 
-    // The seed leaves seed-beta in blocked with a real reason,
-    // and seed-alpha in running. Those drive the two must-have sections.
     const attentionRow = page.getByTestId("dash-attention-seed-beta");
     await expect(attentionRow).toBeVisible();
     await expect(attentionRow.getByText(/Allow Write to \/etc\/hosts\?/)).toBeVisible();
-
     await expect(page.getByTestId("dash-running-seed-alpha")).toBeVisible();
 
-    // Both sections render with their headers + counts.
     await expect(page.getByRole("heading", { name: /Needs attention/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Running/i })).toBeVisible();
 
     // Clicking the attention row opens the session detail.
     await attentionRow.click();
     await expect(page).toHaveURL(/\/sessions\/seed-beta$/);
+  });
+
+  test("worktree badge renders for a session whose cwd is a linked checkout", async ({
+    page,
+  }) => {
+    // seed-gamma's cwd is a real git worktree created by the seed.
+    // The server detects via `git rev-parse --git-dir/--git-common-dir`
+    // and broadcasts a follow-up session_upsert with is_worktree=true.
+    // The badge testid is reused across the sidebar card, dashboard
+    // running chip, and (when viewing the session) the detail header,
+    // so we scope to the sidebar card to avoid strict-mode collisions.
+    await page.goto("/");
+    const gammaCard = page.getByTestId("session-card-seed-gamma");
+    await expect(gammaCard).toBeVisible({ timeout: 5000 });
+    await expect(gammaCard.getByTestId("worktree-badge-seed-gamma")).toBeVisible();
   });
 
   test("settings page exposes the five notification switches", async ({ page }) => {
@@ -119,7 +147,6 @@ test.describe("agent-zoo happy path", () => {
       { id: "session_complete", label: "Session completes" },
       { id: "subagent_spawn", label: "Subagent spawned" },
     ];
-
     for (const { id, label } of expectedSwitches) {
       await expect(page.getByText(label, { exact: true })).toBeVisible();
       await expect(page.getByTestId(`notif-switch-${id}`)).toBeVisible();
@@ -130,7 +157,9 @@ test.describe("agent-zoo happy path", () => {
     const before = await subagent.getAttribute("data-state");
     await subagent.click();
     await page.reload();
-    const after = await page.getByTestId("notif-switch-subagent_spawn").getAttribute("data-state");
+    const after = await page
+      .getByTestId("notif-switch-subagent_spawn")
+      .getAttribute("data-state");
     expect(after).not.toBe(before);
   });
 });

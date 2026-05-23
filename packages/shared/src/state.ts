@@ -60,6 +60,15 @@ export interface SessionState {
   waiting_reason?: string;
   /** `received_at` of the most recent payload for this session. */
   last_event_at: string;
+  /**
+   * True when `cwd` is inside a git worktree (linked checkout), not
+   * the main checkout. Detected once when the session is first seen
+   * by comparing `git rev-parse --git-dir` against `--git-common-dir`.
+   * Absent when not yet detected, not a git repo, or detection failed.
+   */
+  is_worktree?: boolean;
+  /** Absolute path to the main checkout when `is_worktree` is true. */
+  worktree_main_path?: string;
   /** Per-agent state, keyed by `agent.id`. */
   agents: Record<string, AgentState>;
 }

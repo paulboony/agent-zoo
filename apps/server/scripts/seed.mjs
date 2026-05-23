@@ -1,5 +1,13 @@
 #!/usr/bin/env node
+import { execFile } from "node:child_process";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const exec = promisify(execFile);
 const ENDPOINT = process.env.CLAUDE_DASHBOARD_URL ?? "http://127.0.0.1:7777/hook";
+const API_BASE = ENDPOINT.replace(/\/hook\/?$/, "/api");
 
 const args = process.argv.slice(2);
 let scenario = "demo";
@@ -62,6 +70,59 @@ async function spawnSubagent({ id, description, prompt, subagent_type = "general
   });
 }
 
+/**
+ * Create an isolated git main checkout + linked worktree under
+ * `os.tmpdir()`, return the absolute worktree path. The server's
+ * `detectWorktree` runs `git rev-parse --git-dir/--git-common-dir`
+ * against the cwd, so the path must be a real git worktree at the
+ * time the SessionStart hook fires.
+ */
+async function createSeedWorktree() {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "agent-zoo-seed-wt-"));
+  const main = path.join(root, "main");
+  const wt = path.join(root, "wt");
+  await fs.mkdir(main);
+  await exec("git", ["-C", main, "init", "-q", "-b", "main"]);
+  await fs.writeFile(path.join(main, "README"), "seed\n");
+  await exec("git", ["-C", main, "add", "."]);
+  await exec("git", [
+    "-C",
+    main,
+    "-c",
+    "user.email=seed@agent-zoo",
+    "-c",
+    "user.name=seed",
+    "commit",
+    "-qm",
+    "init",
+  ]);
+  await exec("git", ["-C", main, "worktree", "add", "-q", wt]);
+  return wt;
+}
+
+/**
+ * Poll the snapshot endpoint until `is_worktree` is no longer
+ * undefined for the given session. detectWorktree is fire-and-forget
+ * after SessionStart, so the seed waits for it to settle before
+ * returning — keeps the e2e deterministic.
+ */
+async function waitForWorktreeDetection(sessionId, { timeoutMs = 5000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}`);
+      if (res.ok) {
+        const body = await res.json();
+        if (body?.session?.is_worktree !== undefined) return;
+      }
+    } catch {
+      // server briefly unavailable — keep polling
+    }
+    await sleep(50);
+  }
+  console.warn(`seed: is_worktree detection did not settle for ${sessionId}`);
+}
+
 async function demo() {
   // Two sessions starting in parallel
   await post({
@@ -79,8 +140,6 @@ async function demo() {
     source: "startup",
   });
 
-  await sleep(150);
-
   // Alpha kicks off a Bash command
   await post({
     hook_event_name: "PreToolUse",
@@ -92,8 +151,6 @@ async function demo() {
     tool_use_id: "alpha-bash-1",
   });
 
-  await sleep(100);
-
   // Alpha spawns five sub-agents — one per label-rule mascot kind, all
   // dispatched as `general-purpose` (matches real superpowers usage).
   // Two are reviewers: one ends quickly (test "Show ended" toggle), the
@@ -104,36 +161,30 @@ async function demo() {
     prompt:
       "Do a final review of the feature branch `feat/notifications`. Check the diff against master for unused exports, missing aria labels on the new toggle, and whether the localStorage keys match the spec. Flag anything that should block merge.",
   });
-  await sleep(80);
   await spawnSubagent({
     id: "alpha-reviewer-2",
     description: "Spec review for notification settings",
     prompt:
       "Read docs/specs/notifications-settings.md and audit it against the current implementation in notifications-section.tsx and use-notifications.ts. List any drift between spec and code, and call out any behaviours that the spec doesn't cover (focus suppression, requireInteraction, edge-triggering).",
   });
-  await sleep(80);
   await spawnSubagent({
     id: "alpha-explorer-1",
     description: "Explore the codebase",
     prompt:
       "Investigate how the notification preferences are persisted across the codebase. Look at use-notifications.ts, notifications-section.tsx, and the underlying localStorage keys. Report which keys are read and written, and whether the master toggle gates per-event prefs.",
   });
-  await sleep(80);
   await spawnSubagent({
     id: "alpha-coder-1",
     description: "Implement Task 5",
     prompt:
       "Implement the subagent_spawn notification event end-to-end: extend the prefs map, add the dispatch path in use-notifications.ts, wire the toggle in notifications-section.tsx, and update the e2e test.",
   });
-  await sleep(80);
   await spawnSubagent({
     id: "alpha-writer-1",
     description: "Write notification spec",
     prompt:
       "Draft a spec for the notifications settings page. Cover master toggle, per-event switches, focus suppression, and the requireInteraction policy for blocked and session_error.",
   });
-
-  await sleep(150);
 
   // Beta hits a permission prompt
   await post({
@@ -144,8 +195,6 @@ async function demo() {
     message: "Allow Write to /etc/hosts?",
     title: "Permission needed",
   });
-
-  await sleep(150);
 
   // Reviewer sub-agent finishes (so the "Show ended" toggle has something
   // to reveal). The other three stay active.
@@ -168,6 +217,20 @@ async function demo() {
     tool_input: { command: "pnpm test" },
     tool_use_id: "alpha-bash-1",
   });
+
+  // Gamma: running inside a real linked git worktree. Exercises the
+  // server's worktree detection + the UI's WorktreeBadge.
+  const worktreePath = await createSeedWorktree();
+  await post({
+    hook_event_name: "SessionStart",
+    session_id: "seed-gamma",
+    cwd: worktreePath,
+    transcript_path: `${worktreePath}/.claude/transcript.jsonl`,
+    source: "startup",
+  });
+  // Detection is fire-and-forget post-SessionStart; wait for the
+  // follow-up upsert so the field is settled before the e2e queries.
+  await waitForWorktreeDetection("seed-gamma");
 
   console.log("seed: demo scenario complete");
 }

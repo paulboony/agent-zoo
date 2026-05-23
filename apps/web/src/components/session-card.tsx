@@ -6,6 +6,7 @@ import type { SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
+import { WorktreeBadge } from "./worktree-badge.js";
 
 interface Props {
   session: SessionState;
@@ -29,6 +30,7 @@ export function SessionCard({ session }: Props) {
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.cwd_basename}
           </span>
+          <WorktreeBadge session={session} />
           <span className="shrink-0">
             <StatusBadge status={session.status} />
           </span>

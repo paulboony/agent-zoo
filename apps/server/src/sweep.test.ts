@@ -91,9 +91,12 @@ describe("sweep", () => {
   it("marks running agents stale when a session is swept to stale", () => {
     const store = createStore();
     const lastEvent = new Date(Date.now() - 11 * 60_000).toISOString();
+    // current_tool set → the idle-promote heuristic skips this (tool
+    // is still in-flight from its POV), so the stale path fires.
     const running: AgentState = {
       id: "main",
       status: "running",
+      current_tool: "Bash",
       started_at: lastEvent,
       last_event_at: lastEvent,
       tool_calls_count: 1,
@@ -173,6 +176,97 @@ describe("sweep", () => {
     reduce(store, env);
 
     expect(store.sessions.get("s-late")?.status).toBe("ended");
+  });
+
+  it("promotes a stuck running session to awaiting_user when no tool is active and idle > IDLE_THRESHOLD", () => {
+    // Regression: if Claude Code's Stop hook fails to deliver (e.g.,
+    // the handler timed out POSTing to /hook), the session stays
+    // "running" forever even though the agent has finished its turn.
+    // Sweep self-heals: running + no current_tool + idle > 30s →
+    // awaiting_user. Catches up next time the user submits anyway.
+    const store = createStore();
+    // 1 minute idle, well past IDLE_THRESHOLD_MS but well under
+    // STALE_THRESHOLD_MS (10m), so stale shouldn't fire here.
+    const lastEvent = new Date(Date.now() - 60_000).toISOString();
+    const agent: AgentState = {
+      id: "main",
+      status: "running",
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      tool_calls_count: 3,
+      error_count: 0,
+      // current_tool intentionally undefined — PostToolUse cleared it.
+    };
+    store.sessions.set("s-stuck", {
+      id: "s-stuck",
+      cwd: "/tmp",
+      cwd_basename: "tmp",
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      status: "running",
+      agents: { main: agent },
+    });
+
+    startStaleSweep(store);
+
+    const session = store.sessions.get("s-stuck");
+    expect(session?.status).toBe("awaiting_user");
+    expect(session?.agents.main?.status).toBe("awaiting_user");
+  });
+
+  it("does NOT promote when a tool is still active (current_tool set)", () => {
+    const store = createStore();
+    const lastEvent = new Date(Date.now() - 60_000).toISOString();
+    const agent: AgentState = {
+      id: "main",
+      status: "running",
+      current_tool: "Bash", // in-flight tool — wait for PostToolUse
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      tool_calls_count: 1,
+      error_count: 0,
+    };
+    store.sessions.set("s-busy", {
+      id: "s-busy",
+      cwd: "/tmp",
+      cwd_basename: "tmp",
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      status: "running",
+      agents: { main: agent },
+    });
+
+    startStaleSweep(store);
+
+    expect(store.sessions.get("s-busy")?.status).toBe("running");
+    expect(store.sessions.get("s-busy")?.agents.main?.status).toBe("running");
+  });
+
+  it("does NOT promote when idle window is below the threshold", () => {
+    const store = createStore();
+    // 10s idle — under IDLE_THRESHOLD_MS (30s), so still mid-turn.
+    const lastEvent = new Date(Date.now() - 10_000).toISOString();
+    const agent: AgentState = {
+      id: "main",
+      status: "running",
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      tool_calls_count: 1,
+      error_count: 0,
+    };
+    store.sessions.set("s-fresh", {
+      id: "s-fresh",
+      cwd: "/tmp",
+      cwd_basename: "tmp",
+      started_at: lastEvent,
+      last_event_at: lastEvent,
+      status: "running",
+      agents: { main: agent },
+    });
+
+    startStaleSweep(store);
+
+    expect(store.sessions.get("s-fresh")?.status).toBe("running");
   });
 
   it("preserves ended_at on a session that already had one", () => {

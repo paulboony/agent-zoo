@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import type { ComponentType } from "react";
 import type { AgentCardProps } from "./agent-card-props.js";
 import type { MascotKind, Theme, ThemeManifest } from "./types.js";
@@ -32,9 +33,13 @@ const soundModules = import.meta.glob("../themes/*/notification.mp3", {
   query: "?url",
   import: "default",
 }) as EagerStringRecord;
+// Agent-card components are the biggest per-theme chunk (component code,
+// not just an asset URL). Lazy-loaded via dynamic import so only the
+// active theme's card lands in the initial bundle. Mascot SVGs / CSS /
+// previews stay eager because the theme-picker preview thumbnails and
+// initial paint of the default theme need them synchronously.
 const agentCardModules = import.meta.glob<{ default: ComponentType<AgentCardProps> }>(
   "../themes/*/agent-card.tsx",
-  { eager: true },
 );
 
 const KIND_FILES: Record<MascotKind, string> = {
@@ -79,8 +84,8 @@ function buildRegistry(): Record<string, Theme> {
     if (soundModules[soundKey] !== undefined) theme.notificationSoundUrl = soundModules[soundKey];
     if (manifest.mascot_sprite !== undefined) theme.mascotSprite = manifest.mascot_sprite;
     if (spriteModules[spriteKey] !== undefined) theme.mascotSpriteUrl = spriteModules[spriteKey];
-    const agentCardMod = agentCardModules[agentCardKey];
-    if (agentCardMod?.default) theme.agentCard = agentCardMod.default;
+    const agentCardLoader = agentCardModules[agentCardKey];
+    if (agentCardLoader) theme.agentCard = lazy(agentCardLoader);
 
     themes[themeId] = theme;
   }

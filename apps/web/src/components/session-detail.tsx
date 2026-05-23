@@ -3,17 +3,16 @@ import { Card } from "@/components/ui/card.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
-import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { useActiveTheme } from "@/lib-theme/context.js";
-import { formatDuration } from "@/lib/time.js";
 import type { AgentState, AgentStatus, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { PromptPopover } from "./prompt-popover.js";
 import { StatusBadge } from "./status-badge.js";
+import { TimeAgo } from "./time-ago.js";
 
 /**
  * Per-status visual info for the agent card:
@@ -29,12 +28,6 @@ const STATUS_INFO: Record<AgentStatus, { glyph: string; varName: string }> = {
   error: { glyph: "✗", varName: "error" },
   ended: { glyph: "⊘", varName: "ended" },
 };
-
-function timeAgo(iso: string, now: number): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "";
-  return formatDuration(now - t, { suffix: " ago", justNowMs: 5000 });
-}
 
 function buildAgentCardProps(agent: AgentState, size: number): AgentCardProps {
   const showTool = agent.current_tool ?? agent.last_tool;
@@ -61,7 +54,14 @@ function AgentNode({ agent, size }: { agent: AgentState; size: number }) {
   const theme = useActiveTheme();
   const props = buildAgentCardProps(agent, size);
   const Custom = theme.agentCard;
-  return Custom ? <Custom {...props} /> : <DefaultAgentCard {...props} />;
+  if (!Custom) return <DefaultAgentCard {...props} />;
+  // Custom is React.lazy(); render the default card while the theme's
+  // chunk streams in, then swap on resolve. One-time per theme.
+  return (
+    <Suspense fallback={<DefaultAgentCard {...props} />}>
+      <Custom {...props} />
+    </Suspense>
+  );
 }
 
 function DefaultAgentCard({
@@ -71,24 +71,25 @@ function DefaultAgentCard({
   toolLabel,
   toolSummary,
 }: AgentCardProps) {
-  const now = useNow();
   const name = agent.label ?? agent.agent_type ?? agent.id;
   const showId = agent.id !== "main";
   const toolCall = toolLabel ? `${toolLabel}(${toolSummary ?? ""})` : null;
   const statusInfo = STATUS_INFO[agent.status];
 
-  const statParts: string[] = [];
-  statParts.push(
+  // The static portion of the stats line — calls / errors / model.
+  // The time portion ticks every second and is rendered by <TimeAgo>
+  // so the rest of the card doesn't re-render on each interval tick.
+  const staticStatParts: string[] = [];
+  staticStatParts.push(
     `${agent.tool_calls_count} ${agent.tool_calls_count === 1 ? "call" : "calls"}`,
   );
   if (agent.error_count > 0) {
-    statParts.push(
+    staticStatParts.push(
       `${agent.error_count} ${agent.error_count === 1 ? "error" : "errors"}`,
     );
   }
-  if (agent.model) statParts.push(agent.model);
-  statParts.push(timeAgo(agent.last_event_at, now));
-  const stats = statParts.join(" · ");
+  if (agent.model) staticStatParts.push(agent.model);
+  const staticStats = staticStatParts.join(" · ");
 
   return (
     <Card className="flex h-full w-full flex-row items-start gap-3 rounded-md px-3 py-2.5">
@@ -141,7 +142,11 @@ function DefaultAgentCard({
             triggerClassName="line-clamp-2 cursor-pointer text-left text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
           />
         )}
-        <div className="truncate font-mono text-fg/50 text-xs">{stats}</div>
+        <div className="truncate font-mono text-fg/50 text-xs">
+          {staticStats}
+          {staticStats && " · "}
+          <TimeAgo iso={agent.last_event_at} suffix=" ago" justNowMs={5000} />
+        </div>
       </div>
     </Card>
   );
@@ -150,22 +155,30 @@ function DefaultAgentCard({
 function SubAgentSection({ subs }: { subs: AgentState[] }) {
   const [showEnded, setShowEnded] = useState(false);
 
-  const active = subs
-    .filter((s) => s.status !== "ended")
-    .sort((a, b) => {
-      const ua = statusUrgency(a.status);
-      const ub = statusUrgency(b.status);
+  // Partition + sort in one memoized pass. Pre-memo this ran twice on
+  // every render (filter+sort for active, then for ended), and the
+  // parent SessionDetail re-renders on every useNow tick from
+  // descendant cards — so this was firing every second.
+  const { active, ended } = useMemo(() => {
+    const a: AgentState[] = [];
+    const e: AgentState[] = [];
+    for (const s of subs) {
+      if (s.status === "ended") e.push(s);
+      else a.push(s);
+    }
+    a.sort((x, y) => {
+      const ua = statusUrgency(x.status);
+      const ub = statusUrgency(y.status);
       if (ua !== ub) return ub - ua;
-      return Date.parse(b.last_event_at) - Date.parse(a.last_event_at);
+      return Date.parse(y.last_event_at) - Date.parse(x.last_event_at);
     });
-
-  const ended = subs
-    .filter((s) => s.status === "ended")
-    .sort((a, b) => {
-      const aTs = a.ended_at ?? a.last_event_at;
-      const bTs = b.ended_at ?? b.last_event_at;
-      return Date.parse(bTs) - Date.parse(aTs);
+    e.sort((x, y) => {
+      const xs = x.ended_at ?? x.last_event_at;
+      const ys = y.ended_at ?? y.last_event_at;
+      return Date.parse(ys) - Date.parse(xs);
     });
+    return { active: a, ended: e };
+  }, [subs]);
 
   return (
     <div className="mt-6 w-full">

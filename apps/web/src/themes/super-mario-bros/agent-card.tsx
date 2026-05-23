@@ -1,8 +1,8 @@
 import { Mascot } from "@/components/mascot.js";
 import { PromptPopover } from "@/components/prompt-popover.js";
-import { useNow } from "@/hooks/use-now.js";
+import { TimeAgo } from "@/components/time-ago.js";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
-import { formatDuration } from "@/lib/time.js";
+import type { ReactNode } from "react";
 
 /**
  * Super Mario Bros. agent card — SMB1 HUD vibe with honest labels.
@@ -24,7 +24,7 @@ import { formatDuration } from "@/lib/time.js";
  * theme's existing card chrome (2px black border + 4px solid gray
  * pixel drop-shadow) inherited via data-slot="card".
  */
-function HudStat({ label, value }: { label: string; value: string }) {
+function HudStat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col leading-tight">
       <div>{label}</div>
@@ -35,8 +35,6 @@ function HudStat({ label, value }: { label: string; value: string }) {
 
 export default function SMBAgentCard(props: AgentCardProps) {
   const { agent, isMain, displayKind, mascotState, toolLabel, toolSummary, size } = props;
-  const now = useNow();
-  const elapsed = formatDuration(now - Date.parse(agent.last_event_at));
   const name = agent.label ?? agent.agent_type ?? agent.id;
   const calls = String(agent.tool_calls_count).padStart(6, "0");
   const errors = String(agent.error_count).padStart(2, "0");
@@ -54,7 +52,7 @@ export default function SMBAgentCard(props: AgentCardProps) {
         <HudStat label="KIND" value={kindLabel} />
         <HudStat label="CALLS" value={calls} />
         <HudStat label="ERRORS" value={errors} />
-        <HudStat label="TIME" value={elapsed} />
+        <HudStat label="TIME" value={<TimeAgo iso={agent.last_event_at} />} />
       </div>
       <div className="flex flex-col items-center gap-2 p-3">
         <Mascot kind={displayKind} state={mascotState} size={size} />

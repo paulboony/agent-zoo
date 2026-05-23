@@ -1,8 +1,7 @@
 import { Mascot } from "@/components/mascot.js";
 import { PromptPopover } from "@/components/prompt-popover.js";
-import { useNow } from "@/hooks/use-now.js";
+import { TimeAgo } from "@/components/time-ago.js";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
-import { formatDuration } from "@/lib/time.js";
 
 /**
  * 8-Bit Quest agent card — NES Final Fantasy 1 menu vibe.
@@ -26,8 +25,6 @@ function Divider() {
 
 export default function FF1AgentCard(props: AgentCardProps) {
   const { agent, isMain, displayKind, mascotState, toolLabel, toolSummary, size } = props;
-  const now = useNow();
-  const elapsed = formatDuration(now - Date.parse(agent.last_event_at));
   const name = (agent.label ?? agent.agent_type ?? agent.id).toUpperCase();
   const kind = isMain ? "PARTY LEADER" : displayKind.toUpperCase();
   const status = agent.status.toUpperCase().replace(/_/g, " ");
@@ -65,7 +62,7 @@ export default function FF1AgentCard(props: AgentCardProps) {
           STATUS <span className="font-bold">{status}</span>
         </div>
         <div className="truncate">
-          LAST <span className="font-bold">{elapsed}</span>
+          LAST <span className="font-bold"><TimeAgo iso={agent.last_event_at} /></span>
         </div>
       </div>
       <Divider />

@@ -1,19 +1,14 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
-import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
 import { useStore } from "@/lib/store.js";
-import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
-
-function elapsed(iso: string, now: number): string {
-  return formatDuration(now - Date.parse(iso));
-}
+import { TimeAgo } from "./time-ago.js";
 
 /**
  * Build the "reason" string shown on an error-status attention row.
@@ -41,7 +36,6 @@ function attentionReason(session: SessionState): string | undefined {
 
 function AttentionRow({ session }: { session: SessionState }) {
   const navigate = useNavigate();
-  const now = useNow();
   const main = pickHeroAgent(session);
   const kind = main ? resolveDisplayKind(main) : "main";
   const reason = attentionReason(session);
@@ -62,7 +56,7 @@ function AttentionRow({ session }: { session: SessionState }) {
             <StatusBadge status={session.status} />
           </span>
           <span className="shrink-0 text-fg/50 text-xs">
-            {elapsed(session.last_event_at, now)}
+            <TimeAgo iso={session.last_event_at} />
           </span>
         </div>
         {reason && (
@@ -80,7 +74,6 @@ function AttentionRow({ session }: { session: SessionState }) {
 
 function ActiveChip({ session }: { session: SessionState }) {
   const navigate = useNavigate();
-  const now = useNow();
   const main = pickHeroAgent(session);
   const kind = main ? resolveDisplayKind(main) : "main";
   return (
@@ -92,7 +85,9 @@ function ActiveChip({ session }: { session: SessionState }) {
     >
       <Mascot kind={kind} state="running" size={20} />
       <span className="font-medium">{session.cwd_basename}</span>
-      <span className="text-fg/50">· {elapsed(session.last_event_at, now)}</span>
+      <span className="text-fg/50">
+        · <TimeAgo iso={session.last_event_at} />
+      </span>
     </button>
   );
 }

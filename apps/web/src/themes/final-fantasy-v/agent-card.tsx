@@ -1,8 +1,8 @@
 import { Mascot } from "@/components/mascot.js";
 import { PromptPopover } from "@/components/prompt-popover.js";
-import { useNow } from "@/hooks/use-now.js";
+import { TimeAgo } from "@/components/time-ago.js";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
-import { formatDuration } from "@/lib/time.js";
+import type { ReactNode } from "react";
 
 /**
  * Final Fantasy V agent card — battle-menu vibe.
@@ -15,7 +15,7 @@ import { formatDuration } from "@/lib/time.js";
  *
  * Same data as the default card, different rendering.
  */
-function StatRow({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-baseline gap-2 font-mono text-xs">
       <span className="shrink-0 font-semibold tracking-wider text-[#e9c349] uppercase">
@@ -29,8 +29,6 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 export default function FFAgentCard(props: AgentCardProps) {
   const { agent, isMain, displayKind, mascotState, toolLabel, toolSummary, size } = props;
-  const now = useNow();
-  const elapsed = formatDuration(now - Date.parse(agent.last_event_at));
   const name = (agent.label ?? agent.agent_type ?? agent.id).toUpperCase();
   const cmd = toolLabel ? `${toolLabel}${toolSummary ? `: ${toolSummary}` : ""}` : "—";
   const status = agent.status.toUpperCase().replace(/_/g, " ");
@@ -55,7 +53,7 @@ export default function FFAgentCard(props: AgentCardProps) {
         <StatRow label="Status" value={status} />
         <StatRow label="Cmd" value={cmd} />
         <StatRow label="Calls" value={callsValue} />
-        <StatRow label="Last" value={elapsed} />
+        <StatRow label="Last" value={<TimeAgo iso={agent.last_event_at} />} />
       </div>
       {agent.prompt && (
         <div className="mt-1 flex flex-col gap-1 border-white/20 border-t pt-2">

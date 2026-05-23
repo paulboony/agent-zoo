@@ -1,24 +1,18 @@
 import { useSidebar } from "@/components/ui/sidebar.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
-import { useNow } from "@/hooks/use-now.js";
 import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
-import { formatDuration } from "@/lib/time.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatusBadge } from "./status-badge.js";
+import { TimeAgo } from "./time-ago.js";
 
 interface Props {
   session: SessionState;
 }
 
-function elapsed(fromIso: string, now: number): string {
-  return formatDuration(now - Date.parse(fromIso));
-}
-
 export function SessionCard({ session }: Props) {
   const { state, isMobile } = useSidebar();
-  const now = useNow();
   const hero = pickHeroAgent(session);
   const heroKind = hero ? resolveDisplayKind(hero) : "main";
   const heroState = statusToMascotState(session.status);
@@ -42,7 +36,7 @@ export function SessionCard({ session }: Props) {
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="truncate text-fg/60 text-xs">
-              {session.cwd} · {elapsed(session.started_at, now)}
+              {session.cwd} · <TimeAgo iso={session.started_at} />
             </span>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-md break-all">
@@ -61,7 +55,9 @@ export function SessionCard({ session }: Props) {
           <span className="text-fg/45">·</span>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="shrink-0 text-fg/60">active {elapsed(session.last_event_at, now)}</span>
+              <span className="shrink-0 text-fg/60">
+                active <TimeAgo iso={session.last_event_at} />
+              </span>
             </TooltipTrigger>
             <TooltipContent side="right">
               Last event: {new Date(session.last_event_at).toLocaleString()}

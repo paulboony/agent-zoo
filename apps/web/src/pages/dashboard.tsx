@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar.js";
 import { Skeleton } from "@/components/ui/skeleton.js";
-import { fetchSnapshot, openStream } from "@/lib/api.js";
+import { openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
 import { Monitor, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -47,7 +47,8 @@ export function Dashboard() {
   const sessions = useMemo(() => sortSessions(sessionsMap), [sessionsMap]);
 
   useEffect(() => {
-    fetchSnapshot().catch((err) => console.warn("snapshot failed", err));
+    // `/stream` sends a `snapshot` SseMessage as its very first frame,
+    // so we don't need a separate `/api/sessions` fetch on boot.
     const close = openStream();
     return close;
   }, []);

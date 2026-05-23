@@ -189,10 +189,45 @@ function readPref(event: NotificationEvent): boolean {
   }
 }
 
-export function getNotificationPrefs(): NotificationPrefs {
-  return Object.fromEntries(
+/**
+ * Memoized prefs snapshot. dispatchNotifications fires on every SSE
+ * upsert, and pre-cache that meant 5 synchronous `localStorage.getItem`
+ * reads per event. We rebuild the cache only when a setter runs in this
+ * tab, or a `storage` event fires from another tab.
+ */
+let cachedPrefs: NotificationPrefs | null = null;
+
+function rebuildCache(): NotificationPrefs {
+  const next = Object.fromEntries(
     NOTIFICATION_RULES.map((r) => [r.event, readPref(r.event)]),
   ) as NotificationPrefs;
+  cachedPrefs = next;
+  return next;
+}
+
+function invalidatePrefsCache(): void {
+  cachedPrefs = null;
+}
+
+if (typeof window !== "undefined") {
+  // Cross-tab updates: another tab toggling a pref must invalidate.
+  window.addEventListener("storage", (e) => {
+    if (!e.key) {
+      // entire localStorage cleared
+      invalidatePrefsCache();
+      return;
+    }
+    for (const key of Object.values(PREF_KEYS)) {
+      if (e.key === key) {
+        invalidatePrefsCache();
+        return;
+      }
+    }
+  });
+}
+
+export function getNotificationPrefs(): NotificationPrefs {
+  return cachedPrefs ?? rebuildCache();
 }
 
 export function setNotificationPref(event: NotificationEvent, value: boolean): void {
@@ -201,6 +236,9 @@ export function setNotificationPref(event: NotificationEvent, value: boolean): v
   } catch {
     // private mode etc.
   }
+  // Same-tab change — `storage` events don't fire for the writer, so
+  // we must invalidate explicitly.
+  invalidatePrefsCache();
 }
 
 function focusedSessionIdFromUrl(): string | null {

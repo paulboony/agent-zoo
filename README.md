@@ -8,6 +8,24 @@ Read-only by design. The dashboard observes; it doesn't drive.
 
 ## Quick start
 
+### Running the published package
+
+```bash
+# One-time: tell npm where to find the package (GitHub Packages, scoped to @paulboony).
+echo "@paulboony:registry=https://npm.pkg.github.com" >> ~/.npmrc
+npm config set //npm.pkg.github.com/:_authToken="$(gh auth token)"
+
+# Run it.
+npx @paulboony/agent-zoo
+```
+
+That single command installs hooks into `~/.claude/settings.json`, boots
+the bundled server, and opens the dashboard at <http://127.0.0.1:5173>.
+
+Flags: `--port`, `--web-port`, `--no-open`, `--no-install-hooks`.
+
+### Running from source (development)
+
 ```bash
 pnpm install
 pnpm install-hooks   # adds entries to ~/.claude/settings.json
@@ -77,6 +95,28 @@ See [`CLAUDE.md`](CLAUDE.md) and `docs/` for architecture details.
 | Label-driven mascot rule | Append to `LABEL_RULES` in `apps/web/src/lib/mascot-kind.ts` |
 | Notification event | `apps/web/src/hooks/use-notifications.ts` (keys, defaults, dispatcher) and `apps/web/src/components/settings/notifications-section.tsx` (EVENTS array) |
 | Mascot kind | `apps/web/src/lib-theme/types.ts` `MascotKind` union, plus per-theme assets |
+
+## Publishing
+
+The package is published to GitHub Packages (private, scoped to
+`@paulboony`). To cut a new release:
+
+```bash
+# Bump version (edits package.json + creates a tag).
+npm version patch    # or minor / major
+
+# Build + publish. `prepublishOnly` runs `pnpm build:dist` first.
+npm publish
+```
+
+`publishConfig.registry` in `package.json` pins publishes to
+`https://npm.pkg.github.com` so this never accidentally lands on
+npmjs.com. The first publish requires `gh auth setup-git` plus
+`npm config set //npm.pkg.github.com/:_authToken="$(gh auth token)"`.
+
+The artifact (`dist/server.mjs` + `dist/web/*` + `dist/scripts/*`) is
+~340 KB packed, zero runtime `dependencies` — everything is bundled by
+esbuild ahead of publish.
 
 ## License
 

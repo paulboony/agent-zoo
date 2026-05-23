@@ -1,15 +1,36 @@
 {
-  "name": "agent-zoo",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@paulboony/agent-zoo",
+  "version": "0.1.0",
+  "description": "Read-only localhost dashboard for live Claude Code sessions and their sub-agents.",
   "type": "module",
+  "bin": {
+    "agent-zoo": "./bin/agent-zoo.mjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paulboony/agent-zoo.git"
+  },
+  "homepage": "https://github.com/paulboony/agent-zoo",
   "packageManager": "pnpm@9.12.0",
   "scripts": {
     "setup": "pnpm install",
     "dev": "turbo run dev --parallel",
     "dev:hooks": "pnpm install-hooks && pnpm dev",
-    "build": "turbo run build",
+    "build:workspaces": "turbo run build",
+    "build:dist": "node scripts/build-dist.mjs",
+    "build": "pnpm build:dist",
+    "prepublishOnly": "pnpm build:dist",
     "start": "node apps/server/dist/index.js",
+    "start:bundle": "node dist/server.mjs",
     "install-hooks": "node apps/server/scripts/install-hooks.mjs",
     "uninstall-hooks": "node apps/server/scripts/uninstall-hooks.mjs",
     "doctor": "node apps/server/scripts/doctor.mjs",
@@ -24,6 +45,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
     "@playwright/test": "^1.48.0",
+    "esbuild": "^0.28.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0"
   },

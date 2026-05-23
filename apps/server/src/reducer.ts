@@ -325,7 +325,6 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       break;
 
     case "PreToolUse": {
-      agent.status = "running";
       agent.current_tool = payload.tool_name;
       agent.tool_calls_count += 1;
       const summary = summariseToolInput(payload.tool_name, payload.tool_input);
@@ -336,6 +335,16 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
         delete agent.current_tool_input_summary;
       }
       session.current_activity = summary ? `${payload.tool_name}: ${summary}` : payload.tool_name;
+      // AskUserQuestion is a tool the agent uses to *block on the
+      // human*. Treat it the same as PermissionRequest / Elicitation:
+      // status → blocked, waiting_reason → the first question text.
+      // Cleared back to "running" on the matching PostToolUse.
+      if (payload.tool_name === "AskUserQuestion") {
+        agent.status = "blocked";
+        session.waiting_reason = readFirstQuestion(payload.tool_input) ?? "AskUserQuestion";
+      } else {
+        agent.status = "running";
+      }
       break;
     }
 
@@ -355,6 +364,15 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       delete agent.current_tool_input_summary;
       // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
       delete session.current_activity;
+      // If the completed tool was AskUserQuestion, the human has
+      // answered — flip the agent back to running and clear the
+      // reason. (Other PostToolUse events don't touch status; the
+      // agent was already running through the tool call.)
+      if (payload.tool_name === "AskUserQuestion") {
+        agent.status = "running";
+        // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
+        delete session.waiting_reason;
+      }
       break;
     }
 
@@ -400,7 +418,28 @@ function summariseToolInput(toolName: string, input: unknown): string | undefine
       const desc = typeof obj.description === "string" ? obj.description : undefined;
       return desc ? desc.slice(0, 80) : undefined;
     }
+    case "AskUserQuestion": {
+      const q = readFirstQuestion(input);
+      return q ? q.slice(0, 80) : undefined;
+    }
     default:
       return undefined;
   }
+}
+
+/**
+ * Pull the first question text out of an AskUserQuestion tool_input.
+ * The tool's `tool_input` is `{ questions: [{ question, header,
+ * options, multiSelect }, ...] }` — only `questions[0].question` is
+ * needed for the dashboard's waiting_reason. Returns undefined for
+ * malformed inputs so callers can fall back to a static label.
+ */
+function readFirstQuestion(input: unknown): string | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const questions = (input as Record<string, unknown>).questions;
+  if (!Array.isArray(questions) || questions.length === 0) return undefined;
+  const first = questions[0];
+  if (!first || typeof first !== "object") return undefined;
+  const q = (first as Record<string, unknown>).question;
+  return typeof q === "string" && q.length > 0 ? q : undefined;
 }

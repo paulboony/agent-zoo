@@ -122,3 +122,143 @@ describe("reduce phantom-agent guard", () => {
     expect(store.sessions.get("s1")?.agents["a_real"]?.status).toBe("ended");
   });
 });
+
+describe("reduce AskUserQuestion handling", () => {
+  it("flips the agent to blocked on PreToolUse(AskUserQuestion) with the first question as waiting_reason", () => {
+    const store = createStore();
+    // Seed the session via SessionStart so the main agent exists.
+    reduce(store, {
+      received_at: "2026-05-15T10:00:00.000Z",
+      payload: {
+        hook_event_name: "SessionStart",
+        session_id: "s-aq",
+        cwd: "/tmp",
+        transcript_path: "",
+        source: "startup",
+      },
+    });
+
+    reduce(store, {
+      received_at: "2026-05-15T10:00:01.000Z",
+      payload: {
+        hook_event_name: "PreToolUse",
+        session_id: "s-aq",
+        cwd: "/tmp",
+        transcript_path: "",
+        tool_name: "AskUserQuestion",
+        tool_use_id: "toolu_q1",
+        tool_input: {
+          questions: [
+            {
+              question: "Which database should we use for persistence?",
+              header: "DB choice",
+              options: [
+                { label: "Postgres", description: "" },
+                { label: "SQLite", description: "" },
+              ],
+              multiSelect: false,
+            },
+          ],
+        },
+      },
+    });
+
+    const session = store.sessions.get("s-aq");
+    expect(session?.status).toBe("blocked");
+    expect(session?.agents.main?.status).toBe("blocked");
+    expect(session?.waiting_reason).toBe("Which database should we use for persistence?");
+    // tool_calls_count still bumps — it's still a tool call.
+    expect(session?.agents.main?.tool_calls_count).toBe(1);
+    // current_tool is set so the UI can show what's pending.
+    expect(session?.agents.main?.current_tool).toBe("AskUserQuestion");
+  });
+
+  it("falls back to a sensible waiting_reason when the questions array is missing/malformed", () => {
+    const store = createStore();
+    reduce(store, {
+      received_at: "2026-05-15T10:00:00.000Z",
+      payload: {
+        hook_event_name: "SessionStart",
+        session_id: "s-aq2",
+        cwd: "/tmp",
+        transcript_path: "",
+        source: "startup",
+      },
+    });
+    reduce(store, {
+      received_at: "2026-05-15T10:00:01.000Z",
+      payload: {
+        hook_event_name: "PreToolUse",
+        session_id: "s-aq2",
+        cwd: "/tmp",
+        transcript_path: "",
+        tool_name: "AskUserQuestion",
+        tool_use_id: "toolu_q2",
+        tool_input: {}, // no questions
+      },
+    });
+    const session = store.sessions.get("s-aq2");
+    expect(session?.status).toBe("blocked");
+    expect(session?.waiting_reason).toBe("AskUserQuestion");
+  });
+
+  it("returns to running and clears waiting_reason on PostToolUse(AskUserQuestion)", () => {
+    const store = createStore();
+    reduce(store, {
+      received_at: "2026-05-15T10:00:00.000Z",
+      payload: {
+        hook_event_name: "SessionStart",
+        session_id: "s-aq3",
+        cwd: "/tmp",
+        transcript_path: "",
+        source: "startup",
+      },
+    });
+    reduce(store, {
+      received_at: "2026-05-15T10:00:01.000Z",
+      payload: {
+        hook_event_name: "PreToolUse",
+        session_id: "s-aq3",
+        cwd: "/tmp",
+        transcript_path: "",
+        tool_name: "AskUserQuestion",
+        tool_use_id: "toolu_q3",
+        tool_input: {
+          questions: [
+            {
+              question: "Ship it?",
+              header: "Ship",
+              options: [
+                { label: "Yes", description: "" },
+                { label: "No", description: "" },
+              ],
+              multiSelect: false,
+            },
+          ],
+        },
+      },
+    });
+    expect(store.sessions.get("s-aq3")?.status).toBe("blocked");
+
+    reduce(store, {
+      received_at: "2026-05-15T10:00:30.000Z",
+      payload: {
+        hook_event_name: "PostToolUse",
+        session_id: "s-aq3",
+        cwd: "/tmp",
+        transcript_path: "",
+        tool_name: "AskUserQuestion",
+        tool_use_id: "toolu_q3",
+        tool_input: {},
+      },
+    });
+    const session = store.sessions.get("s-aq3");
+    expect(session?.status).toBe("running");
+    expect(session?.agents.main?.status).toBe("running");
+    expect(session?.waiting_reason).toBeUndefined();
+    // PostToolUse still clears current_tool the usual way.
+    expect(session?.agents.main?.current_tool).toBeUndefined();
+    // ...and captures it as last_tool.
+    expect(session?.agents.main?.last_tool).toBe("AskUserQuestion");
+  });
+});

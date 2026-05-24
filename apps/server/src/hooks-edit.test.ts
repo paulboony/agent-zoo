@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 // @ts-expect-error - .mjs sibling under scripts/, no type declarations.
 import { addOwnedHooks, removeOwnedHooks } from "../scripts/hooks-edit.mjs";
 
-const OWNER = "claude-dashboard";
+const OWNER = "agent-zoo";
+const LEGACY_OWNER = "claude-dashboard";
 const HANDLER = "/abs/path/to/hook-handler.mjs";
 const EVENTS = ["SessionStart", "Stop", "PreToolUse"];
 
@@ -172,6 +173,60 @@ describe("removeOwnedHooks", () => {
         "agent-zoo/apps/server/scripts/hook-handler.mjs",
         "agent-zoo/dist/scripts/hook-handler.mjs",
       ],
+    });
+    expect(removed).toEqual(["Stop"]);
+    expect(settings.hooks).toBeUndefined();
+  });
+
+  it("recognises entries from a renamed previous owner via legacyOwners", () => {
+    // We renamed our owner marker from "claude-dashboard" to
+    // "agent-zoo". Existing installs have settings.local.json blocks
+    // tagged with the old name; the next install-hooks must strip
+    // them so they can be replaced (rather than producing duplicates
+    // sitting next to fresh "agent-zoo"-owned blocks).
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [{ type: "command", command: HANDLER, owner: LEGACY_OWNER }],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, {
+      owner: OWNER,
+      legacyOwners: [LEGACY_OWNER],
+    });
+    expect(removed).toEqual(["Stop"]);
+    expect(settings.hooks).toBeUndefined();
+  });
+
+  it("legacyOwners can be combined with handlerPathSuffix in one pass", () => {
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [{ type: "command", command: HANDLER, owner: LEGACY_OWNER }],
+          },
+          {
+            matcher: "",
+            hooks: [
+              {
+                type: "command",
+                command:
+                  "/abs/path/to/agent-zoo/apps/server/scripts/hook-handler.mjs",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, {
+      owner: OWNER,
+      legacyOwners: [LEGACY_OWNER],
+      handlerPathSuffix: ["agent-zoo/apps/server/scripts/hook-handler.mjs"],
     });
     expect(removed).toEqual(["Stop"]);
     expect(settings.hooks).toBeUndefined();

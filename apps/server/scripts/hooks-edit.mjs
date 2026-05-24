@@ -83,8 +83,11 @@ export function addOwnedHooks(input, opts) {
  *     `uninstall-hooks` doesn't accidentally strip a stranger's
  *     plain `hook-handler.mjs`.
  */
-function isOwned(hook, owner, handlerPathSuffix) {
+function isOwned(hook, owner, legacyOwners, handlerPathSuffix) {
   if (hook?.owner === owner) return true;
+  if (Array.isArray(legacyOwners) && legacyOwners.includes(hook?.owner)) {
+    return true;
+  }
   if (typeof hook?.command !== "string") return false;
   const suffixes = handlerPathSuffix
     ? Array.isArray(handlerPathSuffix)
@@ -111,7 +114,7 @@ function isOwned(hook, owner, handlerPathSuffix) {
  * Other tools' hook blocks at the same event are preserved untouched.
  */
 export function removeOwnedHooks(input, opts) {
-  const { owner, handlerPathSuffix } = opts;
+  const { owner, legacyOwners, handlerPathSuffix } = opts;
   if (!owner) throw new TypeError("removeOwnedHooks: owner required");
   const settings = deepClone(input);
   if (!settings.hooks || typeof settings.hooks !== "object") {
@@ -129,7 +132,7 @@ export function removeOwnedHooks(input, opts) {
         continue;
       }
       const remainingHooks = block.hooks.filter(
-        (h) => !isOwned(h, owner, handlerPathSuffix),
+        (h) => !isOwned(h, owner, legacyOwners, handlerPathSuffix),
       );
       if (remainingHooks.length !== block.hooks.length) {
         strippedFromThisEvent = true;

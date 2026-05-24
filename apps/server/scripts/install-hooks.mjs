@@ -16,7 +16,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { addOwnedHooks, removeOwnedHooks } from "./hooks-edit.mjs";
 
-const HOOK_OWNER = "claude-dashboard";
+const HOOK_OWNER = "agent-zoo";
+// Older versions of this tool used "claude-dashboard" as the owner
+// marker. Any entry tagged with one of these in the user's settings
+// gets migrated to the new owner during install — so we don't end up
+// with duplicate blocks (one per name) firing for every hook.
+const LEGACY_OWNERS = ["claude-dashboard"];
 const EVENTS = [
   "SessionStart",
   "SessionEnd",
@@ -66,45 +71,65 @@ async function main() {
     process.exit(1);
   });
 
-  // 1. Migrate: if any of our entries linger in the shared file from
-  //    pre-migration installs, strip them. We also pass
-  //    `handlerPathSuffix` so we catch LEGACY entries that don't
-  //    carry the `owner` marker — older versions of install-hooks
-  //    didn't write it, and some users have hand-edited entries that
-  //    only identify by command path. Once stripped, subsequent runs
-  //    find nothing to do.
+  const removeOpts = {
+    owner: HOOK_OWNER,
+    legacyOwners: LEGACY_OWNERS,
+    handlerPathSuffix: LEGACY_HANDLER_SUFFIXES,
+  };
+
+  // 1. Clean settings.json (the shared file): strip any of our
+  //    entries that linger there from pre-migration installs — by
+  //    current owner, by legacy owner ("claude-dashboard"), or by
+  //    handler path suffix. The dashboard's hooks belong in
+  //    settings.local.json; anything in settings.json is a leftover.
   const sharedBefore = await readJson(SHARED_PATH);
   if (sharedBefore.exists) {
     const { settings: nextShared, removed } = removeOwnedHooks(
       sharedBefore.data,
-      { owner: HOOK_OWNER, handlerPathSuffix: LEGACY_HANDLER_SUFFIXES },
+      removeOpts,
     );
     if (removed.length > 0) {
       await atomicWrite(SHARED_PATH, `${JSON.stringify(nextShared, null, 2)}\n`);
       console.log(
-        `Migrated: removed claude-dashboard entries from settings.json (${removed.length} event(s)).`,
+        `Migrated: removed agent-zoo entries from settings.json (${removed.length} event(s)).`,
       );
     }
   }
 
-  // 2. Install: write/refresh our entries in settings.local.json.
+  // 2. Refresh settings.local.json: strip any prior owned entries
+  //    (catching old owner names) THEN add fresh blocks. This
+  //    guarantees a clean rewrite — no duplicate blocks even if we
+  //    rename the owner marker or move the handler path between
+  //    releases.
   await fs.mkdir(claudeHome, { recursive: true });
   const localBefore = await readJson(LOCAL_PATH);
-  const { settings: nextLocal, added, updated } = addOwnedHooks(
+  const { settings: stripped, removed: legacyStripped } = removeOwnedHooks(
     localBefore.data,
-    { owner: HOOK_OWNER, handlerPath, events: EVENTS },
+    removeOpts,
   );
+  const { settings: nextLocal, added, updated } = addOwnedHooks(stripped, {
+    owner: HOOK_OWNER,
+    handlerPath,
+    events: EVENTS,
+  });
 
-  if (added.length === 0 && updated.length === 0) {
-    console.log("No changes needed (settings.local.json already up to date).");
-  } else {
+  const fileChanged =
+    legacyStripped.length > 0 || added.length > 0 || updated.length > 0;
+  if (fileChanged) {
     await atomicWrite(LOCAL_PATH, `${JSON.stringify(nextLocal, null, 2)}\n`);
   }
 
   console.log(`Settings: ${LOCAL_PATH}`);
   console.log(`Handler:  ${handlerPath}`);
-  if (added.length) console.log(`Added:    ${added.join(", ")}`);
-  if (updated.length) console.log(`Updated:  ${updated.join(", ")}`);
+  if (!fileChanged) {
+    console.log("No changes needed (settings.local.json already up to date).");
+  } else {
+    // We always strip-then-add, so post-rewrite every covered event
+    // shows up in `added`. Surface a single summary line; details
+    // about whether it was a rename vs a fresh install vs a path
+    // refresh are inferable from the migration line printed above.
+    console.log(`Installed: ${added.length} event(s) → owner "${HOOK_OWNER}"`);
+  }
 }
 
 async function atomicWrite(target, content) {

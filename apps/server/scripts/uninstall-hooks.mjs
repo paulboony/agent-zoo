@@ -12,11 +12,10 @@ import os from "node:os";
 import path from "node:path";
 import { removeOwnedHooks } from "./hooks-edit.mjs";
 
-const HOOK_OWNER = "claude-dashboard";
-
-// Recognise legacy entries that lack the `owner` field — older
-// versions of install-hooks didn't write it, so we'd otherwise leave
-// them behind on uninstall. Same suffix list install-hooks uses.
+const HOOK_OWNER = "agent-zoo";
+// Recognise entries from older versions of this tool when scrubbing.
+const LEGACY_OWNERS = ["claude-dashboard"];
+// And entries without any owner marker — match by handler path.
 const LEGACY_HANDLER_SUFFIXES = [
   "agent-zoo/apps/server/scripts/hook-handler.mjs",
   "agent-zoo/dist/scripts/hook-handler.mjs",
@@ -43,6 +42,7 @@ async function cleanFile(file) {
   }
   const { settings, removed } = removeOwnedHooks(data, {
     owner: HOOK_OWNER,
+    legacyOwners: LEGACY_OWNERS,
     handlerPathSuffix: LEGACY_HANDLER_SUFFIXES,
   });
   if (removed.length === 0) return { existed: true, removed: [] };
@@ -66,12 +66,12 @@ async function main() {
       continue;
     }
     if (result.removed.length === 0) {
-      console.log(`No claude-dashboard entries in ${file}.`);
+      console.log(`No agent-zoo entries in ${file}.`);
       continue;
     }
     anyRemoved = true;
     console.log(
-      `Removed claude-dashboard entries from ${file}: ${result.removed.join(", ")}`,
+      `Removed agent-zoo entries from ${file}: ${result.removed.join(", ")}`,
     );
   }
   if (!anyRemoved) console.log("Nothing to do.");

@@ -1,69 +1,69 @@
 #!/usr/bin/env node
+/**
+ * Remove every agent-zoo-owned entry from BOTH `~/.claude/settings.json`
+ * and `~/.claude/settings.local.json`.
+ *
+ * We write to settings.local.json by default (see install-hooks.mjs),
+ * but earlier versions of this tool wrote to settings.json — cleaning
+ * both keeps a partial-migration user fully tidy.
+ */
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { removeOwnedHooks } from "./hooks-edit.mjs";
 
 const HOOK_OWNER = "claude-dashboard";
-const settingsPath = path.join(
-  process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude"),
-  "settings.json",
-);
+
+const claudeHome =
+  process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
+const SHARED_PATH = path.join(claudeHome, "settings.json");
+const LOCAL_PATH = path.join(claudeHome, "settings.local.json");
+
+async function cleanFile(file) {
+  let raw;
+  try {
+    raw = await fs.readFile(file, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return { existed: false, removed: [] };
+    throw new Error(`Cannot read ${file}: ${err.message}`);
+  }
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`Cannot parse ${file}: ${err.message}`);
+  }
+  const { settings, removed } = removeOwnedHooks(data, { owner: HOOK_OWNER });
+  if (removed.length === 0) return { existed: true, removed: [] };
+  await atomicWrite(file, `${JSON.stringify(settings, null, 2)}\n`);
+  return { existed: true, removed };
+}
 
 async function main() {
-  let settings;
-  try {
-    const raw = await fs.readFile(settingsPath, "utf8");
-    settings = JSON.parse(raw);
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      console.log(`No settings file at ${settingsPath}; nothing to do.`);
-      return;
+  let anyRemoved = false;
+  for (const file of [LOCAL_PATH, SHARED_PATH]) {
+    let result;
+    try {
+      result = await cleanFile(file);
+    } catch (err) {
+      console.error(err.message);
+      console.error(`Aborting; refusing to overwrite ${file}.`);
+      process.exit(1);
     }
-    console.error(`Cannot parse ${settingsPath}: ${err.message}`);
-    process.exit(1);
-  }
-
-  if (!settings.hooks || typeof settings.hooks !== "object") {
-    console.log("No hooks installed; nothing to do.");
-    return;
-  }
-
-  const removed = [];
-
-  for (const event of Object.keys(settings.hooks)) {
-    const arr = settings.hooks[event];
-    if (!Array.isArray(arr)) continue;
-
-    const filtered = [];
-    for (const block of arr) {
-      if (!Array.isArray(block?.hooks)) {
-        filtered.push(block);
-        continue;
-      }
-      const remainingHooks = block.hooks.filter((h) => h?.owner !== HOOK_OWNER);
-      const removedCount = block.hooks.length - remainingHooks.length;
-      if (removedCount > 0 && !removed.includes(event)) removed.push(event);
-      if (remainingHooks.length === 0) continue;
-      filtered.push({ ...block, hooks: remainingHooks });
+    if (!result.existed) {
+      console.log(`No settings file at ${file}; skipping.`);
+      continue;
     }
-
-    if (filtered.length === 0) {
-      delete settings.hooks[event];
-    } else {
-      settings.hooks[event] = filtered;
+    if (result.removed.length === 0) {
+      console.log(`No claude-dashboard entries in ${file}.`);
+      continue;
     }
+    anyRemoved = true;
+    console.log(
+      `Removed claude-dashboard entries from ${file}: ${result.removed.join(", ")}`,
+    );
   }
-
-  // biome-ignore lint/performance/noDelete: removing the key prunes it from JSON output
-  if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
-
-  await atomicWrite(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
-
-  if (removed.length === 0) {
-    console.log("No claude-dashboard entries found; nothing changed.");
-  } else {
-    console.log(`Removed claude-dashboard entries from: ${removed.join(", ")}`);
-  }
+  if (!anyRemoved) console.log("Nothing to do.");
 }
 
 async function atomicWrite(target, content) {

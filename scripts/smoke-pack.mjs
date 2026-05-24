@@ -117,6 +117,34 @@ async function main() {
     await fs.access(binPath);
     c.ok("Bin symlinked at node_modules/.bin/agent-zoo");
 
+    // Sanity: invoke install-hooks via the packaged bin against the
+    // fake CLAUDE_HOME. Catches builds that forgot to include a
+    // sibling .mjs (e.g. hooks-edit.mjs) — the script would crash at
+    // import time, which the runtime smoke test wouldn't notice
+    // because it runs with --no-install-hooks for safety below.
+    const installHooksPath = path.join(
+      scratch,
+      "node_modules",
+      "@paulboony",
+      "agent-zoo",
+      "dist",
+      "scripts",
+      "install-hooks.mjs",
+    );
+    await fs.access(installHooksPath);
+    const installResult = await run("node", [installHooksPath], {
+      cwd: scratch,
+      env: { CLAUDE_HOME: fakeHome },
+      capture: true,
+    });
+    if (!installResult.out.includes("settings.local.json")) {
+      throw new Error(
+        `install-hooks output didn't mention settings.local.json:\n${installResult.out}`,
+      );
+    }
+    await fs.access(path.join(fakeHome, "settings.local.json"));
+    c.ok("install-hooks writes settings.local.json");
+
     c.step(`Spawning agent-zoo (API :${API_PORT}, web :${WEB_PORT})`);
     child = spawn(binPath, ["--no-open", "--no-install-hooks"], {
       cwd: scratch,

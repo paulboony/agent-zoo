@@ -25,7 +25,7 @@ npm config set //npm.pkg.github.com/:_authToken="$(gh auth token)"
 npx @paulboony/agent-zoo
 ```
 
-That single command installs hooks into `~/.claude/settings.json`, boots
+That single command installs hooks into `~/.claude/settings.local.json`, boots
 the bundled server, and opens the dashboard at <http://127.0.0.1:5173>.
 
 Flags: `--port`, `--web-port`, `--no-open`, `--no-install-hooks`.
@@ -38,7 +38,7 @@ Flags: `--port`, `--web-port`, `--no-open`, `--no-install-hooks`.
 
 ```bash
 pnpm install
-pnpm install-hooks   # adds entries to ~/.claude/settings.json
+pnpm install-hooks   # adds entries to ~/.claude/settings.local.json
 pnpm dev             # http://localhost:5173
 ```
 
@@ -97,7 +97,7 @@ See [`CLAUDE.md`](CLAUDE.md) and `docs/` for architecture details.
 | `pnpm build:workspaces` | `turbo run build` across the workspace |
 | `pnpm start` | Run the per-workspace built app |
 | `pnpm start:bundle` | Run the publish bundle directly (`node dist/server.mjs`) |
-| `pnpm install-hooks` | Configure `~/.claude/settings.json` |
+| `pnpm install-hooks` | Configure `~/.claude/settings.local.json` |
 | `pnpm uninstall-hooks` | Remove this dashboard's hook entries |
 | `pnpm doctor` | Diagnostic checks |
 | `pnpm seed` | Generate fake hook events for UI development |
@@ -134,7 +134,7 @@ dist/
 └── scripts/
     ├── hook-handler.mjs        runtime entry CC spawns per hook event
     ├── post-with-retry.mjs     retry helper imported by the handler
-    ├── install-hooks.mjs       writes ~/.claude/settings.json
+    ├── install-hooks.mjs       writes ~/.claude/settings.local.json
     └── uninstall-hooks.mjs     removes our entries
 ```
 
@@ -205,7 +205,7 @@ npm install /Users/paul/git/paulboony/agent-zoo/paulboony-agent-zoo-*.tgz
 ```
 
 Pass `--no-install-hooks` if you don't want it touching your real
-`~/.claude/settings.json`, or set `CLAUDE_HOME=/tmp/fake-claude` to
+`~/.claude/settings.local.json`, or set `CLAUDE_HOME=/tmp/fake-claude` to
 sandbox it.
 
 Cleanup after the interactive try:

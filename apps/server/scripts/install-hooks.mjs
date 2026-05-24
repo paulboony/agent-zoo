@@ -1,8 +1,20 @@
 #!/usr/bin/env node
+/**
+ * Wire agent-zoo's hook handler into Claude Code's settings.
+ *
+ * Target file is `~/.claude/settings.local.json` (per-machine local
+ * override file) — keeps our auto-installed entries out of the
+ * shared `settings.json` that users hand-edit / version-control.
+ *
+ * Migration: every invocation also checks `settings.json` for any
+ * entries owned by us from older versions of this tool and removes
+ * them, so users mid-upgrade end up with hooks in exactly one place.
+ */
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { addOwnedHooks, removeOwnedHooks } from "./hooks-edit.mjs";
 
 const HOOK_OWNER = "claude-dashboard";
 const EVENTS = [
@@ -23,10 +35,20 @@ const EVENTS = [
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const handlerPath = path.resolve(here, "hook-handler.mjs");
-const settingsPath = path.join(
-  process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude"),
-  "settings.json",
-);
+const claudeHome =
+  process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
+const SHARED_PATH = path.join(claudeHome, "settings.json");
+const LOCAL_PATH = path.join(claudeHome, "settings.local.json");
+
+async function readJson(file) {
+  try {
+    const raw = await fs.readFile(file, "utf8");
+    return { exists: true, data: JSON.parse(raw) };
+  } catch (err) {
+    if (err.code === "ENOENT") return { exists: false, data: {} };
+    throw new Error(`Cannot parse ${file}: ${err.message}`);
+  }
+}
 
 async function main() {
   await fs.access(handlerPath).catch(() => {
@@ -34,55 +56,41 @@ async function main() {
     process.exit(1);
   });
 
-  let settings = {};
-  try {
-    const raw = await fs.readFile(settingsPath, "utf8");
-    settings = JSON.parse(raw);
-  } catch (err) {
-    if (err.code !== "ENOENT") {
-      console.error(`Cannot parse ${settingsPath}: ${err.message}`);
-      console.error("Aborting; refusing to overwrite an unparseable settings.json.");
-      process.exit(1);
-    }
-  }
-
-  if (!settings.hooks || typeof settings.hooks !== "object") {
-    settings.hooks = {};
-  }
-
-  const added = [];
-  const updated = [];
-
-  for (const event of EVENTS) {
-    if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
-    const arr = settings.hooks[event];
-
-    const ownedBlock = arr.find(
-      (block) => Array.isArray(block?.hooks) && block.hooks.some((h) => h?.owner === HOOK_OWNER),
+  // 1. Migrate: if any of our entries linger in the shared file from
+  //    pre-migration installs, strip them. This is a one-shot per
+  //    machine — once stripped, subsequent runs find nothing to do.
+  const sharedBefore = await readJson(SHARED_PATH);
+  if (sharedBefore.exists) {
+    const { settings: nextShared, removed } = removeOwnedHooks(
+      sharedBefore.data,
+      { owner: HOOK_OWNER },
     );
-
-    if (!ownedBlock) {
-      arr.push({
-        matcher: "",
-        hooks: [{ type: "command", command: handlerPath, owner: HOOK_OWNER }],
-      });
-      added.push(event);
-    } else {
-      const hook = ownedBlock.hooks.find((h) => h?.owner === HOOK_OWNER);
-      if (hook && hook.command !== handlerPath) {
-        hook.command = handlerPath;
-        updated.push(event);
-      }
+    if (removed.length > 0) {
+      await atomicWrite(SHARED_PATH, `${JSON.stringify(nextShared, null, 2)}\n`);
+      console.log(
+        `Migrated: removed claude-dashboard entries from settings.json (${removed.length} event(s)).`,
+      );
     }
   }
 
-  await atomicWrite(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
+  // 2. Install: write/refresh our entries in settings.local.json.
+  await fs.mkdir(claudeHome, { recursive: true });
+  const localBefore = await readJson(LOCAL_PATH);
+  const { settings: nextLocal, added, updated } = addOwnedHooks(
+    localBefore.data,
+    { owner: HOOK_OWNER, handlerPath, events: EVENTS },
+  );
 
-  console.log(`Settings: ${settingsPath}`);
+  if (added.length === 0 && updated.length === 0) {
+    console.log("No changes needed (settings.local.json already up to date).");
+  } else {
+    await atomicWrite(LOCAL_PATH, `${JSON.stringify(nextLocal, null, 2)}\n`);
+  }
+
+  console.log(`Settings: ${LOCAL_PATH}`);
   console.log(`Handler:  ${handlerPath}`);
   if (added.length) console.log(`Added:    ${added.join(", ")}`);
   if (updated.length) console.log(`Updated:  ${updated.join(", ")}`);
-  if (!added.length && !updated.length) console.log("No changes needed.");
 }
 
 async function atomicWrite(target, content) {

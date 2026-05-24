@@ -75,6 +75,7 @@ async function main() {
   const scriptSrcs = [
     "hook-handler.mjs",
     "post-with-retry.mjs",
+    "hooks-edit.mjs",
     "install-hooks.mjs",
     "uninstall-hooks.mjs",
   ];

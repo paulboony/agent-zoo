@@ -85,7 +85,7 @@ for sessions whose backfill missed it.
 
 ```
 pnpm install
-pnpm install-hooks         # writes ~/.claude/settings.json entries
+pnpm install-hooks         # writes ~/.claude/settings.local.json entries
 pnpm dev                   # turbo run dev --parallel
 pnpm doctor                # diagnostic
 ```

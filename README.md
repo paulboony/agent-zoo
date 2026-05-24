@@ -95,8 +95,7 @@ See [`CLAUDE.md`](CLAUDE.md) and `docs/` for architecture details.
 | `pnpm build` | Alias for `build:dist` — produces the publishable artifact |
 | `pnpm build:dist` | Bundle server + build web + copy scripts into `dist/` |
 | `pnpm build:workspaces` | `turbo run build` across the workspace |
-| `pnpm start` | Run the per-workspace built app |
-| `pnpm start:bundle` | Run the publish bundle directly (`node dist/server.mjs`) |
+| `pnpm start` | Build the publish bundle and run it (API on `:7777`, web on `:5173`). No hook install or browser-open — `pnpm install-hooks` + your browser do that separately. |
 | `pnpm install-hooks` | Configure `~/.claude/settings.local.json` |
 | `pnpm uninstall-hooks` | Remove this dashboard's hook entries |
 | `pnpm doctor` | Diagnostic checks |

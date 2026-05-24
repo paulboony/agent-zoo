@@ -71,8 +71,38 @@ export function addOwnedHooks(input, opts) {
 }
 
 /**
- * Remove every hook entry whose `owner === opts.owner` from the
- * settings object. Returns `{ settings, removed }`:
+ * Decide whether a single hook entry is ours.
+ *
+ *   - Primary signal: `hook.owner === owner`. Set by every modern
+ *     install of agent-zoo.
+ *   - Fallback signal: when `handlerPathSuffix` is provided, also
+ *     match entries whose `command` ends with that suffix. Catches
+ *     legacy installs (pre-`owner`-field) that left orphan entries
+ *     in `settings.json` indistinguishable-by-data from third-party
+ *     entries except for their handler path. Opt-in by the caller so
+ *     `uninstall-hooks` doesn't accidentally strip a stranger's
+ *     plain `hook-handler.mjs`.
+ */
+function isOwned(hook, owner, handlerPathSuffix) {
+  if (hook?.owner === owner) return true;
+  if (typeof hook?.command !== "string") return false;
+  const suffixes = handlerPathSuffix
+    ? Array.isArray(handlerPathSuffix)
+      ? handlerPathSuffix
+      : [handlerPathSuffix]
+    : [];
+  return suffixes.some((s) => hook.command.endsWith(s));
+}
+
+/**
+ * Remove every hook entry we own from the settings object.
+ *
+ * By default ("strict mode") matches only entries with
+ * `owner === opts.owner`. Pass `handlerPathSuffix` to ALSO match
+ * legacy entries lacking the owner field — used by `install-hooks`
+ * during migration from older versions of this tool.
+ *
+ * Returns `{ settings, removed }`:
  *   - `settings` is a new object; the input is never mutated.
  *   - `removed` is the list of events where at least one owned entry
  *     was stripped. Hook arrays that go empty are deleted; if no
@@ -81,7 +111,7 @@ export function addOwnedHooks(input, opts) {
  * Other tools' hook blocks at the same event are preserved untouched.
  */
 export function removeOwnedHooks(input, opts) {
-  const { owner } = opts;
+  const { owner, handlerPathSuffix } = opts;
   if (!owner) throw new TypeError("removeOwnedHooks: owner required");
   const settings = deepClone(input);
   if (!settings.hooks || typeof settings.hooks !== "object") {
@@ -98,7 +128,9 @@ export function removeOwnedHooks(input, opts) {
         filtered.push(block);
         continue;
       }
-      const remainingHooks = block.hooks.filter((h) => h?.owner !== owner);
+      const remainingHooks = block.hooks.filter(
+        (h) => !isOwned(h, owner, handlerPathSuffix),
+      );
       if (remainingHooks.length !== block.hooks.length) {
         strippedFromThisEvent = true;
       }

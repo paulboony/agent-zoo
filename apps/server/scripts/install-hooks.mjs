@@ -40,6 +40,16 @@ const claudeHome =
 const SHARED_PATH = path.join(claudeHome, "settings.json");
 const LOCAL_PATH = path.join(claudeHome, "settings.local.json");
 
+// Used to recognise legacy entries that lack the `owner` field. Any
+// path ending in one of these suffixes is treated as ours during
+// migration. Covers both dev installs (apps/server/scripts/...) and
+// published bundle installs (dist/scripts/...) so long as they live
+// under an `agent-zoo` directory.
+const LEGACY_HANDLER_SUFFIXES = [
+  "agent-zoo/apps/server/scripts/hook-handler.mjs",
+  "agent-zoo/dist/scripts/hook-handler.mjs",
+];
+
 async function readJson(file) {
   try {
     const raw = await fs.readFile(file, "utf8");
@@ -57,13 +67,17 @@ async function main() {
   });
 
   // 1. Migrate: if any of our entries linger in the shared file from
-  //    pre-migration installs, strip them. This is a one-shot per
-  //    machine — once stripped, subsequent runs find nothing to do.
+  //    pre-migration installs, strip them. We also pass
+  //    `handlerPathSuffix` so we catch LEGACY entries that don't
+  //    carry the `owner` marker — older versions of install-hooks
+  //    didn't write it, and some users have hand-edited entries that
+  //    only identify by command path. Once stripped, subsequent runs
+  //    find nothing to do.
   const sharedBefore = await readJson(SHARED_PATH);
   if (sharedBefore.exists) {
     const { settings: nextShared, removed } = removeOwnedHooks(
       sharedBefore.data,
-      { owner: HOOK_OWNER },
+      { owner: HOOK_OWNER, handlerPathSuffix: LEGACY_HANDLER_SUFFIXES },
     );
     if (removed.length > 0) {
       await atomicWrite(SHARED_PATH, `${JSON.stringify(nextShared, null, 2)}\n`);

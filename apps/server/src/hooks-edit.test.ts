@@ -84,6 +84,123 @@ describe("removeOwnedHooks", () => {
     expect(settings).toEqual({});
   });
 
+  it("recognises legacy entries by command path even when owner is missing", () => {
+    // Real-world shape: pre-`owner`-field installs left agent-zoo
+    // entries in settings.json with no marker, just the handler path.
+    // The migration in install-hooks must still strip these or
+    // duplicate firings persist forever.
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [
+              {
+                type: "command",
+                command:
+                  "/Users/paul/git/paulboony/agent-zoo/apps/server/scripts/hook-handler.mjs",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, {
+      owner: OWNER,
+      handlerPathSuffix: "agent-zoo/apps/server/scripts/hook-handler.mjs",
+    });
+    expect(removed).toEqual(["Stop"]);
+    expect(settings.hooks).toBeUndefined();
+  });
+
+  it("with handlerPathSuffix, leaves OTHER tools' entries (non-matching path) alone", () => {
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "*",
+            hooks: [
+              { type: "command", command: "/some/other-tool/hook-handler.mjs" },
+            ],
+          },
+          {
+            matcher: "",
+            hooks: [
+              {
+                type: "command",
+                command:
+                  "/Users/paul/git/paulboony/agent-zoo/apps/server/scripts/hook-handler.mjs",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, {
+      owner: OWNER,
+      handlerPathSuffix: "agent-zoo/apps/server/scripts/hook-handler.mjs",
+    });
+    expect(removed).toEqual(["Stop"]);
+    expect(settings.hooks.Stop).toHaveLength(1);
+    expect(settings.hooks.Stop[0].hooks[0].command).toBe(
+      "/some/other-tool/hook-handler.mjs",
+    );
+  });
+
+  it("accepts an array of suffixes so we can catch both dev and published handler paths", () => {
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [
+              { type: "command", command: "/home/u/agent-zoo/apps/server/scripts/hook-handler.mjs" },
+            ],
+          },
+          {
+            matcher: "",
+            hooks: [
+              { type: "command", command: "/home/u/agent-zoo/dist/scripts/hook-handler.mjs" },
+            ],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, {
+      owner: OWNER,
+      handlerPathSuffix: [
+        "agent-zoo/apps/server/scripts/hook-handler.mjs",
+        "agent-zoo/dist/scripts/hook-handler.mjs",
+      ],
+    });
+    expect(removed).toEqual(["Stop"]);
+    expect(settings.hooks).toBeUndefined();
+  });
+
+  it("ignores legacy detection when handlerPathSuffix is not provided", () => {
+    // Safety: without the explicit suffix opt-in, only owner-matched
+    // entries get stripped. Keeps the uninstall path conservative.
+    const start = {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [
+              {
+                type: "command",
+                command:
+                  "/Users/paul/git/paulboony/agent-zoo/apps/server/scripts/hook-handler.mjs",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const { settings, removed } = removeOwnedHooks(start, { owner: OWNER });
+    expect(removed).toEqual([]);
+    expect(settings.hooks.Stop).toHaveLength(1);
+  });
+
   it("strips every owned entry, leaves nothing behind", () => {
     const installed = addOwnedHooks({}, opts()).settings;
     const { settings, removed } = removeOwnedHooks(installed, { owner: OWNER });

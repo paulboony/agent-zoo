@@ -14,6 +14,14 @@ import { removeOwnedHooks } from "./hooks-edit.mjs";
 
 const HOOK_OWNER = "claude-dashboard";
 
+// Recognise legacy entries that lack the `owner` field — older
+// versions of install-hooks didn't write it, so we'd otherwise leave
+// them behind on uninstall. Same suffix list install-hooks uses.
+const LEGACY_HANDLER_SUFFIXES = [
+  "agent-zoo/apps/server/scripts/hook-handler.mjs",
+  "agent-zoo/dist/scripts/hook-handler.mjs",
+];
+
 const claudeHome =
   process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
 const SHARED_PATH = path.join(claudeHome, "settings.json");
@@ -33,7 +41,10 @@ async function cleanFile(file) {
   } catch (err) {
     throw new Error(`Cannot parse ${file}: ${err.message}`);
   }
-  const { settings, removed } = removeOwnedHooks(data, { owner: HOOK_OWNER });
+  const { settings, removed } = removeOwnedHooks(data, {
+    owner: HOOK_OWNER,
+    handlerPathSuffix: LEGACY_HANDLER_SUFFIXES,
+  });
   if (removed.length === 0) return { existed: true, removed: [] };
   await atomicWrite(file, `${JSON.stringify(settings, null, 2)}\n`);
   return { existed: true, removed };

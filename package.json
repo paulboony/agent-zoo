@@ -30,6 +30,7 @@
     "build": "pnpm build:dist",
     "prepublishOnly": "pnpm build:dist",
     "start": "pnpm build:dist && node bin/agent-zoo.mjs --no-install-hooks --no-open",
+    "stop": "lsof -ti tcp:7777,5173 | xargs kill 2>/dev/null; true",
     "install-hooks": "node apps/server/scripts/install-hooks.mjs",
     "uninstall-hooks": "node apps/server/scripts/uninstall-hooks.mjs",
     "doctor": "node apps/server/scripts/doctor.mjs",

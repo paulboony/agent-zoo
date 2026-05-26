@@ -407,6 +407,7 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
   const tail = lines.slice(-TAIL_LINES);
   const touchedSessionIds = new Set<string>();
   const discoveredModels = new Map<string, string>();
+  const discoveredPrompts = new Map<string, string>();
 
   for (const line of tail) {
     let entry: unknown;
@@ -415,6 +416,24 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
     } catch {
       continue;
     }
+
+    // Extract user prompt before the synthesise guard; user entries return
+    // null from synthesise (only assistant entries synthesise a hook event),
+    // but we still need to capture the last user message per session.
+    if (entry && typeof entry === "object") {
+      const e = entry as Record<string, unknown>;
+      const sessionId =
+        typeof e.sessionId === "string"
+          ? e.sessionId
+          : typeof e.session_id === "string"
+            ? e.session_id
+            : undefined;
+      if (sessionId) {
+        const userPrompt = extractUserPrompt(entry);
+        if (userPrompt) discoveredPrompts.set(sessionId, userPrompt);
+      }
+    }
+
     const synth = synthesise(entry);
     if (!synth) continue;
     const env: HookEnvelope = {
@@ -427,10 +446,11 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
     if (model) discoveredModels.set(synth.payload.session_id, model);
   }
 
-  // Apply the model patch and the last_event_at bump by rebuilding fresh
-  // SessionState objects. Mirrors the reducer's "build then commit"
-  // pattern — committed SessionStates are treated as immutable so the
-  // store invariant survives future callers (and post-boot subscribers).
+  // Apply the model patch, last_event_at bump, and last_user_prompt by
+  // rebuilding fresh SessionState objects. Mirrors the reducer's
+  // "build then commit" pattern — committed SessionStates are treated as
+  // immutable so the store invariant survives future callers (and
+  // post-boot subscribers).
   const fileMtimeIso = new Date(fileMtimeMs).toISOString();
   for (const sessionId of touchedSessionIds) {
     const session = store.sessions.get(sessionId);
@@ -440,9 +460,14 @@ async function replayJsonl(store: Store, file: string, fileMtimeMs: number): Pro
     const modelChanged = model !== undefined && main !== undefined && main.model !== model;
     const current = Date.parse(session.last_event_at);
     const lastEventChanged = Number.isNaN(current) || current < fileMtimeMs;
-    if (!modelChanged && !lastEventChanged) continue;
+    const prompt = discoveredPrompts.get(sessionId);
+    const promptChanged = prompt !== undefined && session.last_user_prompt !== prompt;
+    if (!modelChanged && !lastEventChanged && !promptChanged) continue;
 
-    const next: SessionState = { ...session };
+    const next: SessionState = {
+      ...session,
+      ...(promptChanged ? { last_user_prompt: prompt } : {}),
+    };
     if (modelChanged && main) {
       next.agents = { ...session.agents, main: { ...main, model } };
     }
@@ -590,4 +615,30 @@ function extractModel(entry: unknown): string | undefined {
   if (!message || typeof message !== "object") return undefined;
   const m = (message as Record<string, unknown>).model;
   return typeof m === "string" && m.length > 0 ? m : undefined;
+}
+
+function extractUserPrompt(entry: unknown): string | undefined {
+  if (!entry || typeof entry !== "object") return undefined;
+  const e = entry as Record<string, unknown>;
+  const type = typeof e.type === "string" ? e.type : undefined;
+  const role = typeof e.role === "string" ? e.role : undefined;
+  if (type !== "user" && role !== "user") return undefined;
+  const msg = e.message;
+  if (!msg || typeof msg !== "object") return undefined;
+  const content = (msg as Record<string, unknown>).content;
+  let text: string | undefined;
+  if (typeof content === "string" && content.length > 0) {
+    text = content;
+  } else if (Array.isArray(content)) {
+    const texts: string[] = [];
+    for (const block of content) {
+      if (!block || typeof block !== "object") continue;
+      const b = block as Record<string, unknown>;
+      if (b.type === "text" && typeof b.text === "string") texts.push(b.text);
+    }
+    if (texts.length > 0) text = texts.join("\n");
+  }
+  if (!text) return undefined;
+  const normalised = text.replace(/\s+/g, " ").trim();
+  return normalised.length > 0 ? normalised.slice(0, 500) : undefined;
 }

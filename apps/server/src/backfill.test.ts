@@ -404,6 +404,88 @@ describe("replayJsonl (via runBackfill)", () => {
   });
 });
 
+describe("backfill last_user_prompt seeding", () => {
+  let home: string;
+  let store: Store;
+  let prevHome: string | undefined;
+
+  beforeEach(async () => {
+    home = await fs.mkdtemp(path.join(os.tmpdir(), "agent-zoo-lup-"));
+    await fs.mkdir(path.join(home, "projects", "demo"), { recursive: true });
+    prevHome = process.env.CLAUDE_HOME;
+    process.env.CLAUDE_HOME = home;
+    store = createStore();
+  });
+
+  afterEach(async () => {
+    if (prevHome === undefined) delete process.env.CLAUDE_HOME;
+    else process.env.CLAUDE_HOME = prevHome;
+    await fs.rm(home, { recursive: true, force: true });
+  });
+
+  it("sets last_user_prompt from the last user entry in the JSONL", async () => {
+    const sid = "sess-lup-1";
+    const jsonl = path.join(home, "projects", "demo", `${sid}.jsonl`);
+    const lines = [
+      {
+        type: "user",
+        role: "user",
+        sessionId: sid,
+        cwd: "/tmp",
+        transcriptPath: jsonl,
+        timestamp: "2026-05-15T10:00:00.000Z",
+        message: { content: "first ask" },
+      },
+      {
+        type: "assistant",
+        role: "assistant",
+        sessionId: sid,
+        cwd: "/tmp",
+        transcriptPath: jsonl,
+        timestamp: "2026-05-15T10:00:01.000Z",
+        message: { model: "claude-sonnet-4-7" },
+      },
+      {
+        type: "user",
+        role: "user",
+        sessionId: sid,
+        cwd: "/tmp",
+        transcriptPath: jsonl,
+        timestamp: "2026-05-15T10:00:02.000Z",
+        message: { content: "  fix the\nbug  " },
+      },
+    ];
+    await fs.writeFile(jsonl, `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`);
+
+    const { runBackfill } = await import("./backfill.js");
+    await runBackfill(store);
+
+    expect(store.sessions.get(sid)?.last_user_prompt).toBe("fix the bug");
+  });
+
+  it("leaves last_user_prompt absent when no user entries are present", async () => {
+    const sid = "sess-lup-2";
+    const jsonl = path.join(home, "projects", "demo", `${sid}.jsonl`);
+    const onlyAssistant = {
+      type: "assistant",
+      role: "assistant",
+      sessionId: sid,
+      cwd: "/tmp",
+      transcriptPath: jsonl,
+      timestamp: "2026-05-15T10:00:01.000Z",
+      message: { model: "claude-sonnet-4-7" },
+    };
+    await fs.writeFile(jsonl, `${JSON.stringify(onlyAssistant)}\n`);
+
+    const { runBackfill } = await import("./backfill.js");
+    await runBackfill(store);
+
+    const session = store.sessions.get(sid);
+    expect(session).toBeDefined();
+    expect(session?.last_user_prompt).toBeUndefined();
+  });
+});
+
 describe("refreshMainAgentModels", () => {
   let home: string;
   let store: Store;

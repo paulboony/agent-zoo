@@ -56,6 +56,9 @@ export interface SessionState {
   status: SessionStatus;
   /** Current PreToolUse activity summary (cleared on PostToolUse). */
   current_activity?: string;
+  /** Most recent UserPromptSubmit payload.prompt for this session.
+   *  Whitespace-collapsed and capped at 500 chars at write time. */
+  last_user_prompt?: string;
   /** `message` from Notification / PermissionRequest / Elicitation while waiting. */
   waiting_reason?: string;
   /** `received_at` of the most recent payload for this session. */

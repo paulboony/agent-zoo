@@ -2,13 +2,15 @@
 /**
  * Wire agent-zoo's hook handler into Claude Code's settings.
  *
- * Target file is `~/.claude/settings.local.json` (per-machine local
- * override file) — keeps our auto-installed entries out of the
- * shared `settings.json` that users hand-edit / version-control.
+ * Target file is `~/.claude/settings.json`. Claude Code only reads
+ * one settings file at user scope (per
+ * https://code.claude.com/docs/en/settings) — `settings.local.json`
+ * is project-scope only and is silently ignored under `~/.claude/`.
  *
- * Migration: every invocation also checks `settings.json` for any
- * entries owned by us from older versions of this tool and removes
- * them, so users mid-upgrade end up with hooks in exactly one place.
+ * Migration: every invocation also checks `~/.claude/settings.local.json`
+ * for entries owned by us from a previous (broken) version of this
+ * tool and removes them, so users mid-upgrade end up with hooks in
+ * exactly one place — and the place Claude Code actually reads.
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -42,7 +44,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const handlerPath = path.resolve(here, "hook-handler.mjs");
 const claudeHome =
   process.env.CLAUDE_HOME ?? path.join(os.homedir(), ".claude");
-const SHARED_PATH = path.join(claudeHome, "settings.json");
+const SETTINGS_PATH = path.join(claudeHome, "settings.json");
 const LOCAL_PATH = path.join(claudeHome, "settings.local.json");
 
 // Used to recognise legacy entries that lack the `owner` field. Any
@@ -77,37 +79,35 @@ async function main() {
     handlerPathSuffix: LEGACY_HANDLER_SUFFIXES,
   };
 
-  // 1. Clean settings.json (the shared file): strip any of our
-  //    entries that linger there from pre-migration installs — by
-  //    current owner, by legacy owner ("claude-dashboard"), or by
-  //    handler path suffix. The dashboard's hooks belong in
-  //    settings.local.json; anything in settings.json is a leftover.
-  const sharedBefore = await readJson(SHARED_PATH);
-  if (sharedBefore.exists) {
-    const { settings: nextShared, removed } = removeOwnedHooks(
-      sharedBefore.data,
+  // 1. Clean ~/.claude/settings.local.json: strip any of our entries
+  //    that landed there from the brief window when this tool wrote
+  //    to it. Claude Code ignores `settings.local.json` at user scope,
+  //    so leaving them there silently breaks hook delivery.
+  const localBefore = await readJson(LOCAL_PATH);
+  if (localBefore.exists) {
+    const { settings: nextLocal, removed } = removeOwnedHooks(
+      localBefore.data,
       removeOpts,
     );
     if (removed.length > 0) {
-      await atomicWrite(SHARED_PATH, `${JSON.stringify(nextShared, null, 2)}\n`);
+      await atomicWrite(LOCAL_PATH, `${JSON.stringify(nextLocal, null, 2)}\n`);
       console.log(
-        `Migrated: removed agent-zoo entries from settings.json (${removed.length} event(s)).`,
+        `Migrated: removed agent-zoo entries from settings.local.json (${removed.length} event(s)).`,
       );
     }
   }
 
-  // 2. Refresh settings.local.json: strip any prior owned entries
-  //    (catching old owner names) THEN add fresh blocks. This
-  //    guarantees a clean rewrite — no duplicate blocks even if we
-  //    rename the owner marker or move the handler path between
-  //    releases.
+  // 2. Refresh settings.json: strip any prior owned entries (catching
+  //    old owner names) THEN add fresh blocks. Strip-then-add gives a
+  //    clean rewrite — no duplicate blocks even if we rename the
+  //    owner marker or move the handler path between releases.
   await fs.mkdir(claudeHome, { recursive: true });
-  const localBefore = await readJson(LOCAL_PATH);
+  const settingsBefore = await readJson(SETTINGS_PATH);
   const { settings: stripped, removed: legacyStripped } = removeOwnedHooks(
-    localBefore.data,
+    settingsBefore.data,
     removeOpts,
   );
-  const { settings: nextLocal, added, updated } = addOwnedHooks(stripped, {
+  const { settings: nextSettings, added, updated } = addOwnedHooks(stripped, {
     owner: HOOK_OWNER,
     handlerPath,
     events: EVENTS,
@@ -116,13 +116,13 @@ async function main() {
   const fileChanged =
     legacyStripped.length > 0 || added.length > 0 || updated.length > 0;
   if (fileChanged) {
-    await atomicWrite(LOCAL_PATH, `${JSON.stringify(nextLocal, null, 2)}\n`);
+    await atomicWrite(SETTINGS_PATH, `${JSON.stringify(nextSettings, null, 2)}\n`);
   }
 
-  console.log(`Settings: ${LOCAL_PATH}`);
+  console.log(`Settings: ${SETTINGS_PATH}`);
   console.log(`Handler:  ${handlerPath}`);
   if (!fileChanged) {
-    console.log("No changes needed (settings.local.json already up to date).");
+    console.log("No changes needed (settings.json already up to date).");
   } else {
     // We always strip-then-add, so post-rewrite every covered event
     // shows up in `added`. Surface a single summary line; details

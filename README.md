@@ -25,7 +25,7 @@ npm config set //npm.pkg.github.com/:_authToken="$(gh auth token)"
 npx @paulboony/agent-zoo
 ```
 
-That single command installs hooks into `~/.claude/settings.local.json`, boots
+That single command installs hooks into `~/.claude/settings.json`, boots
 the bundled server, and opens the dashboard at <http://127.0.0.1:5173>.
 
 Flags: `--port`, `--web-port`, `--no-open`, `--no-install-hooks`.
@@ -38,7 +38,7 @@ Flags: `--port`, `--web-port`, `--no-open`, `--no-install-hooks`.
 
 ```bash
 pnpm install
-pnpm install-hooks   # adds entries to ~/.claude/settings.local.json
+pnpm install-hooks   # adds entries to ~/.claude/settings.json
 pnpm dev             # http://localhost:5173
 ```
 
@@ -96,7 +96,7 @@ See [`CLAUDE.md`](CLAUDE.md) and `docs/` for architecture details.
 | `pnpm build:dist` | Bundle server + build web + copy scripts into `dist/` |
 | `pnpm build:workspaces` | `turbo run build` across the workspace |
 | `pnpm start` | Build the publish bundle and run it (API on `:7777`, web on `:5173`). No hook install or browser-open — `pnpm install-hooks` + your browser do that separately. |
-| `pnpm install-hooks` | Configure `~/.claude/settings.local.json` |
+| `pnpm install-hooks` | Configure `~/.claude/settings.json` |
 | `pnpm uninstall-hooks` | Remove this dashboard's hook entries |
 | `pnpm doctor` | Diagnostic checks |
 | `pnpm seed` | Generate fake hook events for UI development |
@@ -133,7 +133,7 @@ dist/
 └── scripts/
     ├── hook-handler.mjs        runtime entry CC spawns per hook event
     ├── post-with-retry.mjs     retry helper imported by the handler
-    ├── install-hooks.mjs       writes ~/.claude/settings.local.json
+    ├── install-hooks.mjs       writes ~/.claude/settings.json
     └── uninstall-hooks.mjs     removes our entries
 ```
 
@@ -204,7 +204,7 @@ npm install /Users/paul/git/paulboony/agent-zoo/paulboony-agent-zoo-*.tgz
 ```
 
 Pass `--no-install-hooks` if you don't want it touching your real
-`~/.claude/settings.local.json`, or set `CLAUDE_HOME=/tmp/fake-claude` to
+`~/.claude/settings.json`, or set `CLAUDE_HOME=/tmp/fake-claude` to
 sandbox it.
 
 Cleanup after the interactive try:

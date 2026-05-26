@@ -3,9 +3,9 @@
  * Remove every agent-zoo-owned entry from BOTH `~/.claude/settings.json`
  * and `~/.claude/settings.local.json`.
  *
- * We write to settings.local.json by default (see install-hooks.mjs),
- * but earlier versions of this tool wrote to settings.json — cleaning
- * both keeps a partial-migration user fully tidy.
+ * We write to settings.json (the user-scope file Claude Code actually
+ * reads). A previous release briefly wrote to settings.local.json by
+ * mistake — scrubbing both keeps a partial-migration user fully tidy.
  */
 import { promises as fs } from "node:fs";
 import os from "node:os";

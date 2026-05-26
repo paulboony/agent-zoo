@@ -180,10 +180,10 @@ describe("removeOwnedHooks", () => {
 
   it("recognises entries from a renamed previous owner via legacyOwners", () => {
     // We renamed our owner marker from "claude-dashboard" to
-    // "agent-zoo". Existing installs have settings.local.json blocks
-    // tagged with the old name; the next install-hooks must strip
-    // them so they can be replaced (rather than producing duplicates
-    // sitting next to fresh "agent-zoo"-owned blocks).
+    // "agent-zoo". Existing installs have settings.json blocks tagged
+    // with the old name; the next install-hooks must strip them so
+    // they can be replaced (rather than producing duplicates sitting
+    // next to fresh "agent-zoo"-owned blocks).
     const start = {
       hooks: {
         Stop: [

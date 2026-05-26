@@ -137,13 +137,13 @@ async function main() {
       env: { CLAUDE_HOME: fakeHome },
       capture: true,
     });
-    if (!installResult.out.includes("settings.local.json")) {
+    if (!installResult.out.includes("settings.json")) {
       throw new Error(
-        `install-hooks output didn't mention settings.local.json:\n${installResult.out}`,
+        `install-hooks output didn't mention settings.json:\n${installResult.out}`,
       );
     }
-    await fs.access(path.join(fakeHome, "settings.local.json"));
-    c.ok("install-hooks writes settings.local.json");
+    await fs.access(path.join(fakeHome, "settings.json"));
+    c.ok("install-hooks writes settings.json");
 
     c.step(`Spawning agent-zoo (API :${API_PORT}, web :${WEB_PORT})`);
     child = spawn(binPath, ["--no-open", "--no-install-hooks"], {

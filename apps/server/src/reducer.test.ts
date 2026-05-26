@@ -262,3 +262,75 @@ describe("reduce AskUserQuestion handling", () => {
     expect(session?.agents.main?.last_tool).toBe("AskUserQuestion");
   });
 });
+
+describe("reduce UserPromptSubmit handling", () => {
+  function seed(sessionId: string) {
+    const store = createStore();
+    reduce(store, {
+      received_at: "2026-05-15T10:00:00.000Z",
+      payload: {
+        hook_event_name: "SessionStart",
+        session_id: sessionId,
+        cwd: "/tmp",
+        transcript_path: "",
+        source: "startup",
+      },
+    });
+    return store;
+  }
+
+  function submit(store: ReturnType<typeof createStore>, sessionId: string, prompt: string, at = "2026-05-15T10:00:01.000Z") {
+    reduce(store, {
+      received_at: at,
+      payload: {
+        hook_event_name: "UserPromptSubmit",
+        session_id: sessionId,
+        cwd: "/tmp",
+        transcript_path: "",
+        prompt,
+      },
+    });
+  }
+
+  it("populates last_user_prompt from the first UserPromptSubmit", () => {
+    const store = seed("s-up1");
+    submit(store, "s-up1", "fix the install-hooks bug");
+    expect(store.sessions.get("s-up1")?.last_user_prompt).toBe("fix the install-hooks bug");
+  });
+
+  it("overwrites last_user_prompt on a subsequent UserPromptSubmit", () => {
+    const store = seed("s-up2");
+    submit(store, "s-up2", "first ask", "2026-05-15T10:00:01.000Z");
+    submit(store, "s-up2", "second ask", "2026-05-15T10:00:02.000Z");
+    expect(store.sessions.get("s-up2")?.last_user_prompt).toBe("second ask");
+  });
+
+  it("does not overwrite when the new prompt is whitespace-only", () => {
+    const store = seed("s-up3");
+    submit(store, "s-up3", "real ask", "2026-05-15T10:00:01.000Z");
+    submit(store, "s-up3", "   \n\t ", "2026-05-15T10:00:02.000Z");
+    expect(store.sessions.get("s-up3")?.last_user_prompt).toBe("real ask");
+  });
+
+  it("does not set last_user_prompt at all when the very first prompt is whitespace-only", () => {
+    const store = seed("s-up3b");
+    submit(store, "s-up3b", "   ");
+    expect(store.sessions.get("s-up3b")?.last_user_prompt).toBeUndefined();
+  });
+
+  it("collapses internal whitespace and trims before assignment", () => {
+    const store = seed("s-up4");
+    submit(store, "s-up4", "  fix\nthe   install-hooks\tbug  ");
+    expect(store.sessions.get("s-up4")?.last_user_prompt).toBe("fix the install-hooks bug");
+  });
+
+  it("caps last_user_prompt at 500 characters", () => {
+    const store = seed("s-up5");
+    const long = "x".repeat(800);
+    submit(store, "s-up5", long);
+    const got = store.sessions.get("s-up5")?.last_user_prompt;
+    expect(got).toBeDefined();
+    expect(got?.length).toBe(500);
+    expect(got).toBe("x".repeat(500));
+  });
+});

@@ -318,11 +318,17 @@ function applyTransition(agent: AgentState, session: SessionState, payload: Hook
       session.waiting_reason = payload.message ?? event;
       break;
 
-    case "UserPromptSubmit":
+    case "UserPromptSubmit": {
       agent.status = "running";
       // biome-ignore lint/performance/noDelete: required by exactOptionalPropertyTypes
       delete session.waiting_reason;
+      const raw = typeof payload.prompt === "string" ? payload.prompt : "";
+      const normalised = raw.replace(/\s+/g, " ").trim();
+      if (normalised.length > 0) {
+        session.last_user_prompt = normalised.slice(0, 500);
+      }
       break;
+    }
 
     case "PreToolUse": {
       agent.current_tool = payload.tool_name;

@@ -140,6 +140,15 @@ async function demo() {
     source: "startup",
   });
 
+  // Alpha receives a user prompt to display a goal line
+  await post({
+    hook_event_name: "UserPromptSubmit",
+    session_id: "seed-alpha",
+    cwd: ALPHA_CWD,
+    transcript_path: ALPHA_TX,
+    prompt: "Add a goal line so I know what each main agent is working on",
+  });
+
   // Alpha kicks off a Bash command
   await post({
     hook_event_name: "PreToolUse",

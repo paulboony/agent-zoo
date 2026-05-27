@@ -11,7 +11,7 @@ import { Suspense, useMemo, useState } from "react";
 import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { PromptPopover } from "./prompt-popover.js";
-import { StatusBadge } from "./status-badge.js";
+import { SessionActivity } from "./session-activity.js";
 import { TimeAgo } from "./time-ago.js";
 import { WorktreeBadge } from "./worktree-badge.js";
 
@@ -236,11 +236,8 @@ export function SessionDetail({ session }: { session: SessionState }) {
           <WorktreeBadge session={session} withLabel />
         </div>
         <p className="text-fg/60 text-xs">{session.cwd}</p>
-        <div className="mt-2 flex items-center gap-2">
-          <StatusBadge status={session.status} />
-          {session.current_activity && (
-            <span className="text-fg/70 text-xs">{session.current_activity}</span>
-          )}
+        <div className="mt-2">
+          <SessionActivity session={session} variant="header" />
         </div>
       </div>
       <Separator />

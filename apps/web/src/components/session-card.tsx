@@ -4,6 +4,7 @@ import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
+import { SessionActivity } from "./session-activity.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
 import { WorktreeBadge } from "./worktree-badge.js";
@@ -66,12 +67,7 @@ export function SessionCard({ session }: Props) {
             </TooltipContent>
           </Tooltip>
         </div>
-        {session.current_activity && (
-          <span className="truncate text-fg/80 text-xs">{session.current_activity}</span>
-        )}
-        {session.waiting_reason && (
-          <span className="truncate text-fg/80 text-xs">{session.waiting_reason}</span>
-        )}
+        <SessionActivity session={session} variant="card" />
       </div>
     </>
   );

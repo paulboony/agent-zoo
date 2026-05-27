@@ -24,6 +24,16 @@ test.describe("agent-zoo happy path", () => {
     expect(ids[0]).toBe("session-card-seed-beta");
     await expect(betaCard.locator('[data-testid="status-blocked"]')).toBeVisible();
     await expect(alphaCard.locator('[data-testid="status-running"]')).toBeVisible();
+
+    // The card variant of SessionActivity renders only the goal line — the
+    // card already shows status (StatusBadge) and recency ("active <TimeAgo>"),
+    // so the status chip (dot/label/duration) lives in the detail header only.
+    const goal = alphaCard.getByTestId("session-goal");
+    await expect(goal).toBeVisible();
+    await expect(goal).toContainText(
+      "Add a goal line so I know what each main agent is working on",
+    );
+    await expect(alphaCard.getByTestId("session-status-label")).toHaveCount(0);
   });
 
   test("clicking a session opens its detail with the sub-agent tree + prompts", async ({
@@ -42,6 +52,29 @@ test.describe("agent-zoo happy path", () => {
     await expect(
       page.getByText(/Investigate how the notification preferences are persisted/i),
     ).toBeVisible();
+
+    // The goal line renders in both the sidebar card and the detail header.
+    // After navigation the detail header is the last-rendered instance, so
+    // .last() unambiguously targets it when the sidebar card is still mounted.
+    const detailGoal = page.getByTestId("session-goal").last();
+    await expect(detailGoal).toBeVisible();
+    await expect(detailGoal).toContainText(
+      "Add a goal line so I know what each main agent is working on",
+    );
+
+    // The status chip label is exclusive to the detail header (the card omits
+    // it), so there is exactly one on the page once a session is open.
+    const detailLabel = page.getByTestId("session-status-label");
+    await expect(detailLabel).toHaveCount(1);
+    await expect(detailLabel).toBeVisible();
+    await expect(detailLabel).toHaveText(
+      /Running|Waiting(\s·\spermission)?|Idle|Stale|Ended|Error/,
+    );
+
+    // seed-alpha is the only session seeded with a prompt, so its goal line
+    // appears twice: once in its sidebar card, once in the detail header.
+    const goalCount = await page.getByTestId("session-goal").count();
+    expect(goalCount).toBeGreaterThanOrEqual(2);
   });
 
   test("Show ended toggle reveals SubagentStop'd children", async ({ page }) => {

@@ -19,7 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton.js";
 import { openStream } from "@/lib/api.js";
 import { sortSessions, useStore } from "@/lib/store.js";
-import { Monitor, Settings as SettingsIcon } from "lucide-react";
+import { PawPrint, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -57,13 +57,21 @@ export function Dashboard() {
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <Monitor className="size-4 shrink-0" />
-            <h1 className="font-semibold group-data-[collapsible=icon]:hidden">Agent Zoo</h1>
-          </Link>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link to="/">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <PawPrint className="size-4" />
+                  </div>
+                  <div className="flex flex-col gap-0.5 leading-none">
+                    <span className="font-medium">Agent Zoo</span>
+                    <span className="text-xs text-sidebar-foreground/60">Dashboard</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="gap-2 p-2">
@@ -115,7 +123,7 @@ export function Dashboard() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-border border-b px-4">
           <SidebarTrigger />
           <div className="flex items-center gap-3">

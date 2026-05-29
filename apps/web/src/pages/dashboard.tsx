@@ -90,7 +90,7 @@ export function Dashboard() {
                     asChild
                     isActive={s.id === selectedId}
                     tooltip={s.cwd_basename}
-                    className="h-auto items-center gap-3 p-2"
+                    className="h-auto items-center gap-1.5 p-2"
                   >
                     <button
                       type="button"

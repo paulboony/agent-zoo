@@ -1,5 +1,6 @@
 import { useActiveTheme } from "@/lib-theme/context.js";
 import type { MascotKind, MascotState, Theme } from "@/lib-theme/types.js";
+import { cn } from "@/lib/cn.js";
 import type { AgentStatus } from "@agent-zoo/shared";
 
 export type { MascotState };
@@ -25,14 +26,17 @@ interface Props {
   kind: MascotKind;
   state: MascotState;
   size?: number;
+  className?: string;
 }
 
-export function Mascot({ kind, state, size = 64 }: Props) {
+export function Mascot({ kind, state, size = 64, className }: Props) {
   const theme = useActiveTheme();
   if (theme.mascotMode === "sprite" && theme.mascotSpriteUrl && theme.mascotSprite) {
-    return <SpriteMascot theme={theme} kind={kind} state={state} size={size} />;
+    return (
+      <SpriteMascot theme={theme} kind={kind} state={state} size={size} className={className} />
+    );
   }
-  return <SvgMascot theme={theme} kind={kind} state={state} size={size} />;
+  return <SvgMascot theme={theme} kind={kind} state={state} size={size} className={className} />;
 }
 
 function SvgMascot({
@@ -40,16 +44,18 @@ function SvgMascot({
   kind,
   state,
   size,
+  className,
 }: {
   theme: Theme;
   kind: MascotKind;
   state: MascotState;
   size: number;
+  className?: string;
 }) {
   const svg = theme.mascots[kind] ?? "";
   return (
     <span
-      className="mascot inline-block"
+      className={cn("mascot inline-block", className)}
       role="img"
       aria-label={`${kind} agent, ${state}`}
       data-kind={kind}
@@ -68,11 +74,13 @@ function SpriteMascot({
   kind,
   state,
   size,
+  className,
 }: {
   theme: Theme;
   kind: MascotKind;
   state: MascotState;
   size: number;
+  className?: string;
 }) {
   const spec = theme.mascotSprite;
   const url = theme.mascotSpriteUrl;
@@ -107,7 +115,7 @@ function SpriteMascot({
 
   return (
     <span
-      className="mascot inline-block"
+      className={cn("mascot inline-block", className)}
       role="img"
       aria-label={`${kind} agent, ${state}`}
       data-kind={kind}

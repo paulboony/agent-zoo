@@ -64,9 +64,9 @@ export function Dashboard() {
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                     <PawPrint className="size-4" />
                   </div>
-                  <div className="flex flex-col gap-0.5 leading-none">
-                    <span className="font-medium">Agent Zoo</span>
-                    <span className="text-xs text-sidebar-foreground/60">Dashboard</span>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">Agent Zoo</span>
+                    <span className="truncate text-xs text-sidebar-foreground/60">Dashboard</span>
                   </div>
                 </Link>
               </SidebarMenuButton>
@@ -90,7 +90,7 @@ export function Dashboard() {
                     asChild
                     isActive={s.id === selectedId}
                     tooltip={s.cwd_basename}
-                    className="h-auto items-center gap-3 p-3"
+                    className="h-auto items-center gap-3 p-2"
                   >
                     <button
                       type="button"

@@ -50,7 +50,7 @@ function SvgMascot({
   kind: MascotKind;
   state: MascotState;
   size: number;
-  className?: string;
+  className?: string | undefined;
 }) {
   const svg = theme.mascots[kind] ?? "";
   return (
@@ -80,7 +80,7 @@ function SpriteMascot({
   kind: MascotKind;
   state: MascotState;
   size: number;
-  className?: string;
+  className?: string | undefined;
 }) {
   const spec = theme.mascotSprite;
   const url = theme.mascotSpriteUrl;

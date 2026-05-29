@@ -25,7 +25,9 @@ export function SessionCard({ session }: Props) {
 
   return (
     <>
-      <Mascot kind={heroKind} state={heroState} size={44} />
+      {/* Cap the width so themes with wider/squarer mascot art (e.g. the
+          default SVG) stay visually consistent with the narrow sprite ones. */}
+      <Mascot kind={heroKind} state={heroState} size={44} className="max-w-9" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1 truncate font-medium text-sm">

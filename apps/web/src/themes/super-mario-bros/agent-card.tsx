@@ -54,8 +54,20 @@ export default function SMBAgentCard(props: AgentCardProps) {
         <HudStat label="ERRORS" value={errors} />
         <HudStat label="TIME" value={<TimeAgo iso={agent.last_event_at} />} />
       </div>
+      {/* Sky-and-ground stage: the mascot stands on a brown ground strip
+          whose top edge meets the bottom of its feet. The mascot is lifted
+          by exactly the ground's height (mb-2.5 === h-2.5) so it rests on
+          the surface rather than sinking into it. */}
+      <div className="relative flex w-full items-end justify-center overflow-hidden bg-[#5c94fc] pt-4">
+        <Mascot
+          kind={displayKind}
+          state={mascotState}
+          size={size}
+          className="relative z-10 mb-2.5"
+        />
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-2.5 bg-[#9c5a3c]" />
+      </div>
       <div className="flex flex-col items-center gap-2 p-3">
-        <Mascot kind={displayKind} state={mascotState} size={size} />
         <div className="w-full text-center">
           <div className="truncate font-bold text-sm">{name}</div>
           {agent.label && agent.agent_type && (

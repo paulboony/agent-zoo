@@ -67,18 +67,21 @@ export default function SMBAgentCard(props: AgentCardProps) {
         />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-2.5 bg-[#9c5a3c]" />
       </div>
-      <div className="flex flex-col items-center gap-2 p-3">
+      {/* Earth section — same brown as the ground strip so it reads as one
+          mass below the mascot's feet. White-based text (like the HUD) keeps
+          contrast readable on the brown; dark text would only hit ~3.2:1. */}
+      <div className="flex flex-1 flex-col items-center gap-2 bg-[#9c5a3c] p-3 text-white">
         <div className="w-full text-center">
           <div className="truncate font-bold text-sm">{name}</div>
           {agent.label && agent.agent_type && (
-            <div className="text-fg/60 text-xs">{agent.agent_type}</div>
+            <div className="text-white/90 text-xs">{agent.agent_type}</div>
           )}
         </div>
-        <div className="text-fg/70 text-xs">
-          Status: <span className="font-bold">{status}</span>
+        <div className="text-white/90 text-xs">
+          Status: <span className="font-bold text-white">{status}</span>
         </div>
         {cmd && (
-          <div className="w-full truncate text-center text-fg/70 text-xs">
+          <div className="w-full truncate text-center text-white/90 text-xs">
             <span className="font-bold">?</span> {cmd}
           </div>
         )}
@@ -87,7 +90,7 @@ export default function SMBAgentCard(props: AgentCardProps) {
             prompt={agent.prompt}
             side="bottom"
             align="center"
-            triggerClassName="line-clamp-2 w-full cursor-pointer text-center text-fg/60 text-xs italic transition-colors hover:text-fg/80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+            triggerClassName="line-clamp-2 w-full cursor-pointer text-center text-white/90 text-xs italic transition-colors hover:text-white focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
           />
         )}
       </div>

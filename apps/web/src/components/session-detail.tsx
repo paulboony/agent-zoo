@@ -218,7 +218,7 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
 
   return (
     <div className="flex flex-col items-center pt-4">
-      <div className="w-full max-w-md">
+      <div className="w-full">
         <AgentNode agent={main} size={64} />
       </div>
       {subs.length > 0 && <SubAgentSection subs={subs} />}

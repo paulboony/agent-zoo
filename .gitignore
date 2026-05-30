@@ -10,3 +10,6 @@ test-results/
 *.tsbuildinfo
 .env
 .env.local
+
+# Brainstorming visual-companion artifacts
+.superpowers/

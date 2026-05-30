@@ -104,7 +104,7 @@ export function AppSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-2 p-2">
+            <SidebarMenu className="gap-2">
               {sessions.length === 0 && connection === "connecting" ? (
                 <>
                   <SessionCardSkeleton />
@@ -122,7 +122,7 @@ export function AppSidebar() {
                       asChild
                       isActive={s.id === selectedId}
                       tooltip={s.cwd_basename}
-                      className="h-auto items-center gap-1.5 p-2"
+                      className="h-auto"
                     >
                       <button
                         type="button"

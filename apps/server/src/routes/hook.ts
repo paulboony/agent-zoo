@@ -14,6 +14,7 @@ export function hookRoute(store: Store): Hono {
     }
     try {
       const wasKnown = store.sessions.has(env.payload.session_id);
+      store.activity.record(env);
       const updated = reduce(store, env);
       if (updated) {
         store.seq += 1;

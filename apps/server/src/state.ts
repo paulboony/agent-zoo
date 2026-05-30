@@ -1,4 +1,5 @@
 import type { HookPayload, SessionState, SseMessage } from "@agent-zoo/shared";
+import { type ActivityTracker, createActivityTracker } from "./activity.js";
 import { type ReducerState, createReducerState } from "./reducer.js";
 
 export interface CircularBuffer<T> {
@@ -30,6 +31,8 @@ export interface Store {
   seq: number;
   subscribers: Set<(msg: SseMessage) => void>;
   recent_events: CircularBuffer<HookPayload>;
+  /** Rolling 24h activity buckets, fed from the hook route. */
+  activity: ActivityTracker;
   /**
    * Reducer-private correlation buffers. Owned by `reduce()`. Other
    * code paths should NOT read or write this directly — go through
@@ -44,6 +47,7 @@ export function createStore(): Store {
     seq: 0,
     subscribers: new Set(),
     recent_events: createCircularBuffer<HookPayload>(1000),
+    activity: createActivityTracker(),
     reducerState: createReducerState(),
   };
 }

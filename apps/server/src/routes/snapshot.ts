@@ -22,5 +22,7 @@ export function snapshotRoutes(store: Store): Hono {
     });
   });
 
+  app.get("/activity", (c) => c.json(store.activity.snapshot(Date.now())));
+
   return app;
 }

@@ -152,6 +152,16 @@ test.describe("agent-zoo happy path", () => {
     await expect(page).toHaveURL(/\/sessions\/seed-beta$/);
   });
 
+  test("dashboard landing shows stat cards and the 24h activity chart", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("dash-stats")).toBeVisible();
+    await expect(page.getByText("Active sessions")).toBeVisible();
+    await expect(page.getByText("Errors · 24h")).toBeVisible();
+    await expect(page.getByText("Sessions done · 24h")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Activity — last 24 hours/i })).toBeVisible();
+  });
+
   test("worktree badge renders for a session whose cwd is a linked checkout", async ({
     page,
   }) => {

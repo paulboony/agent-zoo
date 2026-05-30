@@ -241,7 +241,60 @@ async function demo() {
   // follow-up upsert so the field is settled before the e2e queries.
   await waitForWorktreeDetection("seed-gamma");
 
+  await seedActivity();
+
   console.log("seed: demo scenario complete");
+}
+
+/** Post an activity event for the alpha session at an explicit time. */
+async function postActivityAt(hook_event_name, received_at, extra = {}) {
+  const body = JSON.stringify({
+    received_at,
+    payload: {
+      hook_event_name,
+      session_id: "seed-alpha",
+      cwd: ALPHA_CWD,
+      transcript_path: ALPHA_TX,
+      ...extra,
+    },
+  });
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+  });
+  if (!res.ok) throw new Error(`POST ${ENDPOINT} returned ${res.status}`);
+}
+
+/**
+ * Spread tool-call / error events across the last several hours so the
+ * 24h activity chart shows multiple stacked bars. Only PreToolUse and
+ * PostToolUseFailure are posted (not SubagentStart) so this doesn't add
+ * phantom children to seed-alpha's sub-agent tree — the chart's
+ * sub-agent series is fed by the demo's real spawnSubagent calls in the
+ * current hour. The tracker buckets these by `received_at`.
+ */
+async function seedActivity() {
+  const HOUR = 60 * 60 * 1000;
+  const now = Date.now();
+  for (let h = 0; h < 6; h++) {
+    const at = new Date(now - h * HOUR).toISOString();
+    const calls = 3 + ((h * 7) % 9);
+    for (let i = 0; i < calls; i++) {
+      await postActivityAt("PreToolUse", at, {
+        tool_name: "Bash",
+        tool_input: { command: "ls" },
+        tool_use_id: `act-${h}-${i}`,
+      });
+    }
+    if (h === 1) {
+      await postActivityAt("PostToolUseFailure", at, {
+        tool_name: "Bash",
+        tool_input: {},
+        tool_use_id: `err-${h}`,
+      });
+    }
+  }
 }
 
 const scenarios = { demo };

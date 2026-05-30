@@ -2,11 +2,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
 import { useStore } from "@/lib/store.js";
+import { useActivity } from "@/lib/use-activity.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ActivityChart } from "./activity-chart.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
+import { StatCard } from "./stat-card.js";
+import { StatGrid } from "./stat-grid.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
 import { WorktreeBadge } from "./worktree-badge.js";
@@ -97,7 +101,7 @@ function ActiveChip({ session }: { session: SessionState }) {
 
 export function DashboardOverview() {
   const sessions = useStore((s) => s.sessions);
-  const { attention, running } = useMemo(() => {
+  const { attention, running, activeCount, completed24h } = useMemo(() => {
     const all = Object.values(sessions);
     const attention = all
       .filter((s) => s.status === "blocked" || s.status === "error")
@@ -110,19 +114,40 @@ export function DashboardOverview() {
     const running = all
       .filter((s) => s.status === "running")
       .sort((a, b) => Date.parse(b.last_event_at) - Date.parse(a.last_event_at));
-    return { attention, running };
+    // "Active" = live (not ended). A session is only momentarily "running"
+    // (mid tool-call), so counting that alone reads 0 most of the time;
+    // non-ended is the useful headline of how many sessions are ongoing.
+    const activeCount = all.filter((s) => s.status !== "ended").length;
+    // "Sessions done · 24h" = sessions that ended within the last 24h.
+    // ended_at isn't always set on backfilled sessions, so fall back to
+    // last_event_at (which for an ended session ≈ when it ended).
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const completed24h = all.filter(
+      (s) => s.status === "ended" && Date.parse(s.ended_at ?? s.last_event_at) >= dayAgo,
+    ).length;
+    return { attention, running, activeCount, completed24h };
   }, [sessions]);
 
-  if (attention.length === 0 && running.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-fg/60">
-        <p className="text-sm">All quiet.</p>
-      </div>
-    );
-  }
+  const activity = useActivity();
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+      <div data-testid="dash-stats">
+        <StatGrid>
+          <StatCard label="Active sessions" value={activeCount} sublabel="currently open" />
+          <StatCard
+            label="Needs attention"
+            value={attention.length}
+            sublabel="blocked or errored"
+            warn={attention.length > 0}
+          />
+          <StatCard label="Sessions done · 24h" value={completed24h} sublabel="ended in last 24h" />
+          <StatCard label="Errors · 24h" value={activity.errors24h} sublabel="across all sessions" />
+        </StatGrid>
+      </div>
+
+      <ActivityChart buckets={activity.buckets} />
+
       {attention.length > 0 && (
         <section data-testid="dash-attention">
           <header className="mb-2 flex items-baseline gap-2">
@@ -136,6 +161,7 @@ export function DashboardOverview() {
           </div>
         </section>
       )}
+
       {running.length > 0 && (
         <section data-testid="dash-running">
           <header className="mb-2 flex items-baseline gap-2">
@@ -148,6 +174,10 @@ export function DashboardOverview() {
             ))}
           </div>
         </section>
+      )}
+
+      {attention.length === 0 && running.length === 0 && (
+        <p className="text-center text-fg/50 text-sm">All quiet — no active sessions.</p>
       )}
     </div>
   );

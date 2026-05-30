@@ -6,17 +6,16 @@ const POLL_MS = 60_000;
 
 export interface ActivityData {
   buckets: ActivityBucket[];
-  toolCalls24h: number;
-  subagents24h: number;
+  errors24h: number;
 }
 
-const EMPTY: ActivityData = { buckets: [], toolCalls24h: 0, subagents24h: 0 };
+const EMPTY: ActivityData = { buckets: [], errors24h: 0 };
 
 /**
- * Fetches GET /api/activity on mount and re-polls every 60s. The two
- * live cards (active / needs-attention) do NOT use this hook — they
- * read the SSE session map and update instantly. This hook backs only
- * the two 24h cards and the chart.
+ * Fetches GET /api/activity on mount and re-polls every 60s. Backs the
+ * chart (buckets) and the Errors·24h card (errors24h). The live cards
+ * (active / needs-attention) and Sessions-done·24h do NOT use this hook
+ * — they read the SSE session map and update instantly.
  */
 export function useActivity(): ActivityData {
   const [data, setData] = useState<ActivityData>(EMPTY);
@@ -30,9 +29,8 @@ export function useActivity(): ActivityData {
         if (!res.ok) return;
         const body = (await res.json()) as ActivityResponse;
         if (cancelled) return;
-        const toolCalls24h = body.buckets.reduce((s, b) => s + b.tool_calls, 0);
-        const subagents24h = body.buckets.reduce((s, b) => s + b.subagents, 0);
-        setData({ buckets: body.buckets, toolCalls24h, subagents24h });
+        const errors24h = body.buckets.reduce((s, b) => s + b.errors, 0);
+        setData({ buckets: body.buckets, errors24h });
       } catch {
         // keep last good data on failure (localhost dashboard, low stakes)
       }

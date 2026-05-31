@@ -17,6 +17,12 @@ export interface ToolFailureCount {
   calls: number;
 }
 
+/** A suggested allowlist rule and how many prompts it would cover (24h). */
+export interface PermissionSuggestion {
+  rule: string;
+  count: number;
+}
+
 /** Response shape for `GET /api/activity`: a rolling 24h window. */
 export interface ActivityResponse {
   /** ISO timestamp the snapshot was generated. */
@@ -27,4 +33,13 @@ export interface ActivityResponse {
   interruptions_24h: number;
   /** Per-tool failure counts + call totals, sorted by failure rate desc, last 24h. */
   failures_by_tool: ToolFailureCount[];
+  /** Permission-prompt insights for autonomy (last 24h). */
+  permissions: {
+    /** Permission prompts (allowlist-fixable). */
+    fixable: number;
+    /** Elicitation + AskUserQuestion (need your input; not rule-fixable). */
+    needs_you: number;
+    /** Top suggested allowlist rules by prompt count, desc. */
+    suggestions: PermissionSuggestion[];
+  };
 }

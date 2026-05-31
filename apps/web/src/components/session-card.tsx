@@ -4,7 +4,6 @@ import { resolveDisplayKind } from "@/lib/mascot-kind.js";
 import { pickHeroAgent } from "@/lib/session-hero.js";
 import type { SessionState } from "@agent-zoo/shared";
 import { Mascot, statusToMascotState } from "./mascot.js";
-import { SessionActivity } from "./session-activity.js";
 import { StatusBadge } from "./status-badge.js";
 import { TimeAgo } from "./time-ago.js";
 import { WorktreeBadge } from "./worktree-badge.js";
@@ -27,7 +26,7 @@ export function SessionCard({ session }: Props) {
     <>
       {/* Cap the width so themes with wider/squarer mascot art (e.g. the
           default SVG) stay visually consistent with the narrow sprite ones. */}
-      <Mascot kind={heroKind} state={heroState} size={44} className="max-w-9" />
+      <Mascot kind={heroKind} state={heroState} size={32} className="max-w-9" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
@@ -69,7 +68,6 @@ export function SessionCard({ session }: Props) {
             </TooltipContent>
           </Tooltip>
         </div>
-        <SessionActivity session={session} variant="card" />
       </div>
     </>
   );

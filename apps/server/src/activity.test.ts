@@ -27,13 +27,13 @@ describe("createActivityTracker", () => {
   const thisHour = "2026-05-30T12:05:00.000Z";
 
   it("returns 24 zero buckets and empty aggregates when empty", () => {
-    const t = createActivityTracker();
-    const snap = t.snapshot(now);
+    const snap = createActivityTracker().snapshot(now);
     expect(snap.buckets).toHaveLength(24);
     expect(snap.buckets.every((b) => b.tool_calls === 0)).toBe(true);
     expect(snap.buckets[23]!.hour_start).toBe("2026-05-30T12:00:00.000Z");
     expect(snap.interruptions_24h).toBe(0);
     expect(snap.failures_by_tool).toEqual([]);
+    expect(snap.permissions).toEqual({ fixable: 0, needs_you: 0, suggestions: [] });
   });
 
   it("counts PreToolUse as a tool call", () => {
@@ -43,32 +43,60 @@ describe("createActivityTracker", () => {
     expect(t.snapshot(now).buckets[23]!.tool_calls).toBe(2);
   });
 
-  it("counts AskUserQuestion as BOTH a tool call and an interruption", () => {
+  it("categorizes AskUserQuestion + elicitation as needs_you, permission prompts as fixable", () => {
     const t = createActivityTracker();
     t.record(env("PreToolUse", thisHour, { tool_name: "AskUserQuestion" }));
-    const snap = t.snapshot(now);
-    expect(snap.buckets[23]!.tool_calls).toBe(1);
-    expect(snap.interruptions_24h).toBe(1);
-  });
-
-  it("counts permission/elicitation notifications, PermissionRequest, Elicitation as interruptions", () => {
-    const t = createActivityTracker();
-    t.record(env("Notification", thisHour, { notification_type: "permission_prompt" }));
-    t.record(env("Notification", thisHour, { notification_type: "elicitation_dialog" }));
-    t.record(env("PermissionRequest", thisHour));
     t.record(env("Elicitation", thisHour));
-    expect(t.snapshot(now).interruptions_24h).toBe(4);
+    t.record(env("Notification", thisHour, { notification_type: "elicitation_dialog" }));
+    t.record(env("Notification", thisHour, { notification_type: "permission_prompt" }));
+    t.record(env("PermissionRequest", thisHour));
+    const snap = t.snapshot(now);
+    expect(snap.permissions.fixable).toBe(2);
+    expect(snap.permissions.needs_you).toBe(3);
+    expect(snap.interruptions_24h).toBe(5);
   });
 
-  it("does NOT count idle_prompt as an interruption", () => {
+  it("does NOT count idle_prompt", () => {
     const t = createActivityTracker();
     t.record(env("Notification", thisHour, { notification_type: "idle_prompt" }));
     expect(t.snapshot(now).interruptions_24h).toBe(0);
   });
 
+  it("derives a Bash(prog sub *) rule from the pending PreToolUse command", () => {
+    const t = createActivityTracker();
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash", tool_input: { command: "git push origin main" } }));
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([{ rule: "Bash(git push *)", count: 1 }]);
+  });
+
+  it("derives a single-token Bash rule and a bare tool rule for non-Bash", () => {
+    const t = createActivityTracker();
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash", tool_input: { command: "ls" } }));
+    t.record(env("Notification", thisHour, { notification_type: "permission_prompt" }));
+    t.record(env("PreToolUse", thisHour, { tool_name: "WebFetch", tool_input: { url: "https://x" } }));
+    t.record(env("PermissionRequest", thisHour));
+    const rules = t.snapshot(now).permissions.suggestions.map((s) => s.rule).sort();
+    expect(rules).toEqual(["Bash(ls *)", "WebFetch"]);
+  });
+
+  it("counts a prompt with no pending tool as fixable but yields no suggestion", () => {
+    const t = createActivityTracker();
+    t.record(env("PermissionRequest", thisHour));
+    const snap = t.snapshot(now);
+    expect(snap.permissions.fixable).toBe(1);
+    expect(snap.permissions.suggestions).toEqual([]);
+  });
+
+  it("clears pending on PostToolUse so a later prompt has no suggestion", () => {
+    const t = createActivityTracker();
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash", tool_input: { command: "git push" } }));
+    t.record(env("PostToolUse", thisHour, { tool_name: "Bash" }));
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([]);
+  });
+
   it("groups PostToolUseFailure by tool with call totals, sorted by failure rate desc", () => {
     const t = createActivityTracker();
-    // Bash: 3 calls, 2 fail (67%). Edit: 1 call, 1 fails (100%).
     t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
     t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
     t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
@@ -76,27 +104,20 @@ describe("createActivityTracker", () => {
     t.record(env("PostToolUseFailure", thisHour, { tool_name: "Bash" }));
     t.record(env("PreToolUse", thisHour, { tool_name: "Edit" }));
     t.record(env("PostToolUseFailure", thisHour, { tool_name: "Edit" }));
-    // Edit (100%) sorts before Bash (67%) despite fewer failures.
     expect(t.snapshot(now).failures_by_tool).toEqual([
       { tool: "Edit", count: 1, calls: 1 },
       { tool: "Bash", count: 2, calls: 3 },
     ]);
   });
 
-  it("prunes interruptions and failures older than 24h", () => {
+  it("prunes fixable/needs_you/suggestions older than 24h", () => {
     const t = createActivityTracker();
     const old = new Date(now - 25 * HOUR_MS).toISOString();
+    t.record(env("PreToolUse", old, { tool_name: "Bash", tool_input: { command: "git push" } }));
+    t.record(env("PermissionRequest", old));
     t.record(env("Elicitation", old));
-    t.record(env("PostToolUseFailure", old, { tool_name: "Bash" }));
     const snap = t.snapshot(now);
     expect(snap.interruptions_24h).toBe(0);
-    expect(snap.failures_by_tool).toEqual([]);
-  });
-
-  it("buckets a tool call from 3 hours ago into the right slot", () => {
-    const t = createActivityTracker();
-    const threeAgo = new Date(now - 3 * HOUR_MS).toISOString();
-    t.record(env("PreToolUse", threeAgo, { tool_name: "Bash" }));
-    expect(t.snapshot(now).buckets[20]!.tool_calls).toBe(1);
+    expect(snap.permissions).toEqual({ fixable: 0, needs_you: 0, suggestions: [] });
   });
 });

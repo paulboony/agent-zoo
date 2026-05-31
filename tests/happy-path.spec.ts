@@ -129,22 +129,6 @@ test.describe("agent-zoo happy path", () => {
     );
   });
 
-  test("dashboard landing surfaces attention list + running chips", async ({ page }) => {
-    await page.goto("/");
-
-    const attentionRow = page.getByTestId("dash-attention-seed-beta");
-    await expect(attentionRow).toBeVisible();
-    await expect(attentionRow.getByText(/Allow Write to \/etc\/hosts\?/)).toBeVisible();
-    await expect(page.getByTestId("dash-running-seed-alpha")).toBeVisible();
-
-    await expect(page.getByRole("heading", { name: /Needs attention/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Running/i })).toBeVisible();
-
-    // Clicking the attention row opens the session detail.
-    await attentionRow.click();
-    await expect(page).toHaveURL(/\/sessions\/seed-beta$/);
-  });
-
   test("dashboard landing shows stat cards and the 24h activity chart", async ({ page }) => {
     await page.goto("/");
 

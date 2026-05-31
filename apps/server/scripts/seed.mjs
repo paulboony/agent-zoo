@@ -315,6 +315,15 @@ async function seedActivity() {
   // stuck "blocked" — leaving it blocked would skew the session-topology
   // e2e tests. (beta also emits a PermissionRequest in demo() above.)
   const nowIso = new Date(now).toISOString();
+  // A gated Bash command → drives a Bash(git push *) suggestion in the panel.
+  await postActivityAt("PreToolUse", nowIso, {
+    tool_name: "Bash",
+    tool_input: { command: "git push origin main" },
+    tool_use_id: "perm-pre",
+  });
+  await postActivityAt("PermissionRequest", nowIso, {
+    message: "Allow Bash(git push origin main)?",
+  });
   for (const id of ["ask-1", "ask-2"]) {
     const tool_input = { questions: [{ question: "Proceed?" }] };
     await postActivityAt("PreToolUse", nowIso, {

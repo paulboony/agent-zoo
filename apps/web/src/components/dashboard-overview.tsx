@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ActivityChart } from "./activity-chart.js";
 import { FailuresByTool } from "./failures-by-tool.js";
+import { PermissionPrompts } from "./permission-prompts.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatCard } from "./stat-card.js";
 import { StatGrid } from "./stat-grid.js";
@@ -150,6 +151,12 @@ export function DashboardOverview() {
       <ActivityChart buckets={activity.buckets} />
 
       <FailuresByTool failures={activity.failuresByTool} />
+
+      <PermissionPrompts
+        fixable={activity.permissions.fixable}
+        needsYou={activity.permissions.needs_you}
+        suggestions={activity.permissions.suggestions}
+      />
 
       {attention.length > 0 && (
         <section data-testid="dash-attention">

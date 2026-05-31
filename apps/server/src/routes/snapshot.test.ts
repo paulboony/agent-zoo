@@ -18,11 +18,13 @@ function env(name: HookEventName, received_at: string, extra: Record<string, unk
 }
 
 describe("GET /api/activity", () => {
-  it("returns 24 buckets plus interruptions and failures-by-tool", async () => {
+  it("returns buckets, interruptions, failures and permission suggestions", async () => {
     const store = createStore();
     const now = new Date().toISOString();
-    store.activity.record(env("PreToolUse", now, { tool_name: "Bash" }));
-    store.activity.record(env("Elicitation", now));
+    store.activity.record(
+      env("PreToolUse", now, { tool_name: "Bash", tool_input: { command: "git push origin main" } }),
+    );
+    store.activity.record(env("PermissionRequest", now));
     store.activity.record(env("PostToolUseFailure", now, { tool_name: "Bash" }));
     const app = snapshotRoutes(store);
 
@@ -30,14 +32,16 @@ describe("GET /api/activity", () => {
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as {
-      generated_at: string;
       buckets: { tool_calls: number }[];
       interruptions_24h: number;
       failures_by_tool: { tool: string; count: number; calls: number }[];
+      permissions: { fixable: number; needs_you: number; suggestions: { rule: string; count: number }[] };
     };
     expect(body.buckets).toHaveLength(24);
     expect(body.buckets[23]!.tool_calls).toBe(1);
     expect(body.interruptions_24h).toBe(1);
     expect(body.failures_by_tool).toEqual([{ tool: "Bash", count: 1, calls: 1 }]);
+    expect(body.permissions.fixable).toBe(1);
+    expect(body.permissions.suggestions).toEqual([{ rule: "Bash(git push *)", count: 1 }]);
   });
 });

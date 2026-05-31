@@ -16,10 +16,10 @@ export function FailuresByTool({ failures }: { failures: ToolFailureCount[] }) {
   return (
     <section data-testid="dash-failures" className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3">
-        <h2 className="font-semibold text-sm">Failures by tool · 24h</h2>
+        <h2 className="font-semibold text-sm">Failures by tool · since restart</h2>
       </header>
       {top.length === 0 ? (
-        <div className="py-6 text-center text-fg/50 text-sm">No tool failures in the last 24h.</div>
+        <div className="py-6 text-center text-fg/50 text-sm">No tool failures since restart.</div>
       ) : (
         <ul className="flex flex-col gap-2">
           {top.map((f) => {
@@ -38,7 +38,7 @@ export function FailuresByTool({ failures }: { failures: ToolFailureCount[] }) {
                 </Tooltip>
                 <div className="relative h-4 flex-1 overflow-hidden rounded bg-muted/40">
                   <div
-                    className="absolute inset-y-0 left-0 rounded bg-[#d9534f]"
+                    className="absolute inset-y-0 left-0 rounded bg-destructive"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

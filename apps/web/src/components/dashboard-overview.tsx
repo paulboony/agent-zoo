@@ -144,7 +144,7 @@ export function DashboardOverview() {
             warn={attention.length > 0}
           />
           <StatCard label="Sessions done · 24h" value={completed24h} sublabel="ended in last 24h" />
-          <StatCard label="Interruptions · 24h" value={activity.interruptions24h} sublabel="blocked on you" />
+          <StatCard label="Interruptions" value={activity.interruptions24h} sublabel="blocked on you · since restart" />
         </StatGrid>
       </div>
 

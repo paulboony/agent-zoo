@@ -14,13 +14,13 @@ export function PermissionPrompts({ fixable, needsYou, suggestions }: Props) {
   return (
     <section data-testid="dash-permissions" className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold text-sm">Permission prompts · 24h</h2>
+        <h2 className="font-semibold text-sm">Permission prompts · since restart</h2>
         <span className="shrink-0 text-fg/50 text-xs">
           {fixable} fixable · {needsYou} need you
         </span>
       </header>
       {top.length === 0 ? (
-        <div className="py-6 text-center text-fg/50 text-sm">No permission prompts in the last 24h.</div>
+        <div className="py-6 text-center text-fg/50 text-sm">No permission prompts since restart.</div>
       ) : (
         <>
           <ul className="flex flex-col gap-1.5">

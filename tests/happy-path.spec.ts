@@ -150,9 +150,9 @@ test.describe("agent-zoo happy path", () => {
 
     await expect(page.getByTestId("dash-stats")).toBeVisible();
     await expect(page.getByText("Active sessions")).toBeVisible();
-    await expect(page.getByText("Interruptions · 24h")).toBeVisible();
+    await expect(page.getByText("Interruptions", { exact: true })).toBeVisible();
     await expect(page.getByText("Sessions done · 24h")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Activity — last 24 hours/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Activity — since restart/i })).toBeVisible();
     await expect(page.getByTestId("dash-failures")).toBeVisible();
     await expect(page.getByTestId("dash-permissions")).toBeVisible();
   });

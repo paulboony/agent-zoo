@@ -153,9 +153,7 @@ function DefaultAgentCard({
   );
 }
 
-function SubAgentSection({ subs }: { subs: AgentState[] }) {
-  const [showEnded, setShowEnded] = useState(false);
-
+function SubAgentSection({ subs, filter }: { subs: AgentState[]; filter: AgentFilter }) {
   // Partition + sort in one memoized pass. Pre-memo this ran twice on
   // every render (filter+sort for active, then for ended), and the
   // parent SessionDetail re-renders on every useNow tick from
@@ -181,20 +179,14 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
     return { active: a, ended: e };
   }, [subs]);
 
+  const showActive = filter !== "ended";
+  const showEnded = filter !== "active";
+
   return (
     <div className="mt-6 w-full">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-medium text-sm">Sub-agents ({active.length})</h3>
-        {ended.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setShowEnded((v) => !v)}>
-            {showEnded ? "Hide ended" : `Show ended (${ended.length})`}
-          </Button>
-        )}
-      </div>
       <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
-        {active.map((s) => (
-          <AgentNode key={s.id} agent={s} size={64} />
-        ))}
+        {showActive &&
+          active.map((s) => <AgentNode key={s.id} agent={s} size={64} />)}
         {showEnded &&
           ended.map((s) => (
             <div key={s.id} className="h-full opacity-50">
@@ -206,22 +198,69 @@ function SubAgentSection({ subs }: { subs: AgentState[] }) {
   );
 }
 
+type AgentFilter = "all" | "active" | "ended";
+
+const AGENT_FILTERS: { key: AgentFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "ended", label: "Ended" },
+];
+
+function AgentFilterToggle({
+  value,
+  onChange,
+}: {
+  value: AgentFilter;
+  onChange: (value: AgentFilter) => void;
+}) {
+  return (
+    <div className="inline-flex gap-0.5 rounded-md border p-0.5">
+      {AGENT_FILTERS.map((f) => (
+        <Button
+          key={f.key}
+          variant={value === f.key ? "secondary" : "ghost"}
+          size="xs"
+          aria-pressed={value === f.key}
+          onClick={() => onChange(f.key)}
+        >
+          {f.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function matchesFilter(agent: AgentState, filter: AgentFilter): boolean {
+  if (filter === "ended") return agent.status === "ended";
+  if (filter === "active") return agent.status !== "ended";
+  return true;
+}
+
 function AgentTree({ agents }: { agents: AgentState[] }) {
-  if (agents.length === 0) {
-    return <p className="text-fg/50 text-xs">No agents reported yet.</p>;
-  }
-  const main = agents.find((a) => a.id === "main") ?? agents[0];
-  if (!main) {
-    return <p className="text-fg/50 text-xs">No agents reported yet.</p>;
-  }
-  const subs = agents.filter((a) => a !== main);
+  const [filter, setFilter] = useState<AgentFilter>("all");
+
+  const main =
+    agents.length > 0 ? agents.find((a) => a.id === "main") ?? agents[0] : undefined;
+  const subs = main ? agents.filter((a) => a !== main) : [];
 
   return (
-    <div className="flex flex-col items-center pt-4">
-      <div className="w-full">
-        <AgentNode agent={main} size={64} />
+    <div className="mt-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-medium text-sm">Agents</h3>
+        {main && <AgentFilterToggle value={filter} onChange={setFilter} />}
       </div>
-      {subs.length > 0 && <SubAgentSection subs={subs} />}
+      {!main ? (
+        <p className="text-fg/50 text-xs">No agents reported yet.</p>
+      ) : (
+        <div className="flex flex-col items-center">
+          {matchesFilter(main, filter) && (
+            <div className="w-full">
+              <AgentNode agent={main} size={64} />
+            </div>
+          )}
+          {subs.length > 0 && <SubAgentSection subs={subs} filter={filter} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -242,7 +281,6 @@ export function SessionDetail({ session }: { session: SessionState }) {
       </div>
       <Separator />
       <ScrollArea className="flex-1 px-4 pb-6">
-        <h3 className="mt-4 font-medium text-sm">Agents</h3>
         <AgentTree agents={agents} />
       </ScrollArea>
     </div>

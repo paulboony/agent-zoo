@@ -8,6 +8,7 @@ import { statusUrgency } from "@agent-zoo/shared";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ActivityChart } from "./activity-chart.js";
+import { FailuresByTool } from "./failures-by-tool.js";
 import { Mascot, statusToMascotState } from "./mascot.js";
 import { StatCard } from "./stat-card.js";
 import { StatGrid } from "./stat-grid.js";
@@ -142,11 +143,13 @@ export function DashboardOverview() {
             warn={attention.length > 0}
           />
           <StatCard label="Sessions done · 24h" value={completed24h} sublabel="ended in last 24h" />
-          <StatCard label="Errors · 24h" value={activity.errors24h} sublabel="across all sessions" />
+          <StatCard label="Interruptions · 24h" value={activity.interruptions24h} sublabel="blocked on you" />
         </StatGrid>
       </div>
 
       <ActivityChart buckets={activity.buckets} />
+
+      <FailuresByTool failures={activity.failuresByTool} />
 
       {attention.length > 0 && (
         <section data-testid="dash-attention">

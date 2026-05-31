@@ -2,8 +2,6 @@
 import {
   type ChartConfig,
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart.js";
@@ -12,8 +10,6 @@ import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 const chartConfig = {
   tool_calls: { label: "Tool calls", color: "#e0883c" },
-  subagents: { label: "Sub-agents", color: "#5b8def" },
-  errors: { label: "Errors", color: "#d9534f" },
 } satisfies ChartConfig;
 
 /** Format an ISO hour-start to a short local hour label, e.g. "14:00". */
@@ -23,7 +19,7 @@ function hourLabel(iso: string): string {
 }
 
 export function ActivityChart({ buckets }: { buckets: ActivityBucket[] }) {
-  const hasActivity = buckets.some((b) => b.tool_calls + b.subagents + b.errors > 0);
+  const hasActivity = buckets.some((b) => b.tool_calls > 0);
 
   return (
     <section className="rounded-lg border border-border bg-card p-4">
@@ -43,10 +39,7 @@ export function ActivityChart({ buckets }: { buckets: ActivityBucket[] }) {
               minTickGap={24}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="tool_calls" stackId="a" fill="var(--color-tool_calls)" />
-            <Bar dataKey="subagents" stackId="a" fill="var(--color-subagents)" />
-            <Bar dataKey="errors" stackId="a" fill="var(--color-errors)" radius={[2, 2, 0, 0]} />
-            <ChartLegend content={<ChartLegendContent />} />
+            <Bar dataKey="tool_calls" fill="var(--color-tool_calls)" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ChartContainer>
       ) : (

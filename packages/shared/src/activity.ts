@@ -8,10 +8,13 @@ export interface ActivityBucket {
   tool_calls: number;
 }
 
-/** A tool and how many times it failed over the window. */
+/** A tool, how many times it failed, and how many times it was called. */
 export interface ToolFailureCount {
   tool: string;
+  /** PostToolUseFailure count for this tool in the window. */
   count: number;
+  /** Total PreToolUse count for this tool in the window (the denominator). */
+  calls: number;
 }
 
 /** Response shape for `GET /api/activity`: a rolling 24h window. */
@@ -22,6 +25,6 @@ export interface ActivityResponse {
   buckets: ActivityBucket[];
   /** Total interruptions (agent blocked on the user) in the last 24h. */
   interruptions_24h: number;
-  /** PostToolUseFailure counts grouped by tool, sorted desc, last 24h. */
+  /** Per-tool failure counts + call totals, sorted by failure rate desc, last 24h. */
   failures_by_tool: ToolFailureCount[];
 }

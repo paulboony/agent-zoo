@@ -1,21 +1,22 @@
 // apps/web/src/lib/use-activity.ts
-import type { ActivityBucket, ActivityResponse } from "@agent-zoo/shared";
+import type { ActivityBucket, ActivityResponse, ToolFailureCount } from "@agent-zoo/shared";
 import { useEffect, useState } from "react";
 
 const POLL_MS = 60_000;
 
 export interface ActivityData {
   buckets: ActivityBucket[];
-  errors24h: number;
+  interruptions24h: number;
+  failuresByTool: ToolFailureCount[];
 }
 
-const EMPTY: ActivityData = { buckets: [], errors24h: 0 };
+const EMPTY: ActivityData = { buckets: [], interruptions24h: 0, failuresByTool: [] };
 
 /**
  * Fetches GET /api/activity on mount and re-polls every 60s. Backs the
- * chart (buckets) and the Errors·24h card (errors24h). The live cards
- * (active / needs-attention) and Sessions-done·24h do NOT use this hook
- * — they read the SSE session map and update instantly.
+ * tool-calls chart, the Interruptions·24h card, and the Failures-by-tool
+ * panel. The live cards (Active, Needs attention, Sessions done) read the
+ * SSE session map and do not use this hook.
  */
 export function useActivity(): ActivityData {
   const [data, setData] = useState<ActivityData>(EMPTY);
@@ -29,8 +30,11 @@ export function useActivity(): ActivityData {
         if (!res.ok) return;
         const body = (await res.json()) as ActivityResponse;
         if (cancelled) return;
-        const errors24h = body.buckets.reduce((s, b) => s + b.errors, 0);
-        setData({ buckets: body.buckets, errors24h });
+        setData({
+          buckets: body.buckets,
+          interruptions24h: body.interruptions_24h,
+          failuresByTool: body.failures_by_tool,
+        });
       } catch {
         // keep last good data on failure (localhost dashboard, low stakes)
       }

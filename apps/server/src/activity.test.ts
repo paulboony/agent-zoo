@@ -66,14 +66,20 @@ describe("createActivityTracker", () => {
     expect(t.snapshot(now).interruptions_24h).toBe(0);
   });
 
-  it("groups PostToolUseFailure by tool, sorted desc", () => {
+  it("groups PostToolUseFailure by tool with call totals, sorted by failure rate desc", () => {
     const t = createActivityTracker();
+    // Bash: 3 calls, 2 fail (67%). Edit: 1 call, 1 fails (100%).
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
+    t.record(env("PreToolUse", thisHour, { tool_name: "Bash" }));
     t.record(env("PostToolUseFailure", thisHour, { tool_name: "Bash" }));
     t.record(env("PostToolUseFailure", thisHour, { tool_name: "Bash" }));
+    t.record(env("PreToolUse", thisHour, { tool_name: "Edit" }));
     t.record(env("PostToolUseFailure", thisHour, { tool_name: "Edit" }));
+    // Edit (100%) sorts before Bash (67%) despite fewer failures.
     expect(t.snapshot(now).failures_by_tool).toEqual([
-      { tool: "Bash", count: 2 },
-      { tool: "Edit", count: 1 },
+      { tool: "Edit", count: 1, calls: 1 },
+      { tool: "Bash", count: 2, calls: 3 },
     ]);
   });
 

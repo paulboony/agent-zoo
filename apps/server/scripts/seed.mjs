@@ -287,13 +287,46 @@ async function seedActivity() {
         tool_use_id: `act-${h}-${i}`,
       });
     }
-    if (h === 1) {
+    if (h === 1 || h === 3) {
       await postActivityAt("PostToolUseFailure", at, {
         tool_name: "Bash",
         tool_input: {},
-        tool_use_id: `err-${h}`,
+        tool_use_id: `err-bash-${h}`,
       });
     }
+    if (h === 2) {
+      // 4 pytest calls, 1 fails → 25% rate (contrasts with Bash's low rate).
+      for (let i = 0; i < 4; i++) {
+        await postActivityAt("PreToolUse", at, {
+          tool_name: "pytest",
+          tool_input: {},
+          tool_use_id: `pytest-${h}-${i}`,
+        });
+      }
+      await postActivityAt("PostToolUseFailure", at, {
+        tool_name: "pytest",
+        tool_input: {},
+        tool_use_id: `err-pytest-${h}`,
+      });
+    }
+  }
+  // Interruptions in the current hour. Each AskUserQuestion is paired with
+  // its PostToolUse so seed-alpha returns to "running" rather than ending
+  // stuck "blocked" — leaving it blocked would skew the session-topology
+  // e2e tests. (beta also emits a PermissionRequest in demo() above.)
+  const nowIso = new Date(now).toISOString();
+  for (const id of ["ask-1", "ask-2"]) {
+    const tool_input = { questions: [{ question: "Proceed?" }] };
+    await postActivityAt("PreToolUse", nowIso, {
+      tool_name: "AskUserQuestion",
+      tool_input,
+      tool_use_id: id,
+    });
+    await postActivityAt("PostToolUse", nowIso, {
+      tool_name: "AskUserQuestion",
+      tool_input,
+      tool_use_id: id,
+    });
   }
 }
 

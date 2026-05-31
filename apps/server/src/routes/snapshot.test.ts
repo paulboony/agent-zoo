@@ -33,11 +33,11 @@ describe("GET /api/activity", () => {
       generated_at: string;
       buckets: { tool_calls: number }[];
       interruptions_24h: number;
-      failures_by_tool: { tool: string; count: number }[];
+      failures_by_tool: { tool: string; count: number; calls: number }[];
     };
     expect(body.buckets).toHaveLength(24);
     expect(body.buckets[23]!.tool_calls).toBe(1);
     expect(body.interruptions_24h).toBe(1);
-    expect(body.failures_by_tool).toEqual([{ tool: "Bash", count: 1 }]);
+    expect(body.failures_by_tool).toEqual([{ tool: "Bash", count: 1, calls: 1 }]);
   });
 });

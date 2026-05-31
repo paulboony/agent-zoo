@@ -12,7 +12,8 @@ const WINDOW_HOURS = 24;
 interface Counts {
   tool_calls: number;
   interruptions: number;
-  failures: Record<string, number>; // tool_name -> count
+  calls: Record<string, number>; // tool_name -> call count (failure-rate denominator)
+  failures: Record<string, number>; // tool_name -> failure count
 }
 
 export interface ActivityTracker {
@@ -27,7 +28,7 @@ function hourStart(ms: number): number {
 }
 
 function emptyCounts(): Counts {
-  return { tool_calls: 0, interruptions: 0, failures: {} };
+  return { tool_calls: 0, interruptions: 0, calls: {}, failures: {} };
 }
 
 export function createActivityTracker(): ActivityTracker {
@@ -52,6 +53,7 @@ export function createActivityTracker(): ActivityTracker {
         case "PreToolUse": {
           const c = at(h);
           c.tool_calls += 1;
+          c.calls[p.tool_name] = (c.calls[p.tool_name] ?? 0) + 1;
           if (p.tool_name === "AskUserQuestion") c.interruptions += 1;
           break;
         }
@@ -85,6 +87,7 @@ export function createActivityTracker(): ActivityTracker {
       const out: ActivityBucket[] = [];
       let interruptions_24h = 0;
       const failureTotals: Record<string, number> = {};
+      const callTotals: Record<string, number> = {};
       for (let i = 0; i < WINDOW_HOURS; i++) {
         const h = oldest + i * HOUR_MS;
         const c = buckets.get(h);
@@ -94,11 +97,18 @@ export function createActivityTracker(): ActivityTracker {
           for (const [tool, n] of Object.entries(c.failures)) {
             failureTotals[tool] = (failureTotals[tool] ?? 0) + n;
           }
+          for (const [tool, n] of Object.entries(c.calls)) {
+            callTotals[tool] = (callTotals[tool] ?? 0) + n;
+          }
         }
       }
+      // Rate = failures / max(calls, failures): clamps to ≤100% if a
+      // failure's PreToolUse fell outside the window. Sort by rate desc,
+      // then by failure count as a tiebreak.
+      const rate = (f: ToolFailureCount) => f.count / Math.max(f.calls, f.count);
       const failures_by_tool: ToolFailureCount[] = Object.entries(failureTotals)
-        .map(([tool, count]) => ({ tool, count }))
-        .sort((a, b) => b.count - a.count);
+        .map(([tool, count]) => ({ tool, count, calls: callTotals[tool] ?? 0 }))
+        .sort((a, b) => rate(b) - rate(a) || b.count - a.count);
       return { generated_at: new Date(now).toISOString(), buckets: out, interruptions_24h, failures_by_tool };
     },
   };

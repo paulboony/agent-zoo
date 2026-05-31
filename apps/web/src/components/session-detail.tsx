@@ -179,14 +179,14 @@ function SubAgentSection({ subs, filter }: { subs: AgentState[]; filter: AgentFi
     return { active: a, ended: e };
   }, [subs]);
 
-  const showActive = filter !== "ended";
-  const showEnded = filter !== "active";
+  const showEnded = filter === "all";
 
   return (
     <div className="mt-6 w-full">
       <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
-        {showActive &&
-          active.map((s) => <AgentNode key={s.id} agent={s} size={64} />)}
+        {active.map((s) => (
+          <AgentNode key={s.id} agent={s} size={64} />
+        ))}
         {showEnded &&
           ended.map((s) => (
             <div key={s.id} className="h-full opacity-50">
@@ -198,20 +198,21 @@ function SubAgentSection({ subs, filter }: { subs: AgentState[]; filter: AgentFi
   );
 }
 
-type AgentFilter = "all" | "active" | "ended";
+type AgentFilter = "all" | "active";
 
 const AGENT_FILTERS: { key: AgentFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "active", label: "Active" },
-  { key: "ended", label: "Ended" },
 ];
 
 function AgentFilterToggle({
   value,
   onChange,
+  disabled = false,
 }: {
   value: AgentFilter;
   onChange: (value: AgentFilter) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="inline-flex gap-0.5 rounded-md border p-0.5">
@@ -221,6 +222,7 @@ function AgentFilterToggle({
           variant={value === f.key ? "secondary" : "ghost"}
           size="xs"
           aria-pressed={value === f.key}
+          disabled={disabled}
           onClick={() => onChange(f.key)}
         >
           {f.label}
@@ -231,7 +233,6 @@ function AgentFilterToggle({
 }
 
 function matchesFilter(agent: AgentState, filter: AgentFilter): boolean {
-  if (filter === "ended") return agent.status === "ended";
   if (filter === "active") return agent.status !== "ended";
   return true;
 }
@@ -243,22 +244,34 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
     agents.length > 0 ? agents.find((a) => a.id === "main") ?? agents[0] : undefined;
   const subs = main ? agents.filter((a) => a !== main) : [];
 
+  // With nothing running, active/ended filtering is meaningless — pin to
+  // "all" and disable the toggle rather than letting a stale "active"
+  // selection hide every (ended) agent.
+  const hasActive = agents.some((a) => a.status !== "ended");
+  const effectiveFilter = hasActive ? filter : "all";
+
   return (
     <div className="mt-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-medium text-sm">Agents</h3>
-        {main && <AgentFilterToggle value={filter} onChange={setFilter} />}
+        {main && (
+          <AgentFilterToggle
+            value={effectiveFilter}
+            onChange={setFilter}
+            disabled={!hasActive}
+          />
+        )}
       </div>
       {!main ? (
         <p className="text-fg/50 text-xs">No agents reported yet.</p>
       ) : (
         <div className="flex flex-col items-center">
-          {matchesFilter(main, filter) && (
+          {matchesFilter(main, effectiveFilter) && (
             <div className="w-full">
               <AgentNode agent={main} size={64} />
             </div>
           )}
-          {subs.length > 0 && <SubAgentSection subs={subs} filter={filter} />}
+          {subs.length > 0 && <SubAgentSection subs={subs} filter={effectiveFilter} />}
         </div>
       )}
     </div>

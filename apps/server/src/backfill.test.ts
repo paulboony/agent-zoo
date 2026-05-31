@@ -5,10 +5,13 @@ import type { SseMessage } from "@agent-zoo/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   backfillSessionSubagents,
+  extractActivityEnvelopes,
   parseSubagentMeta,
   parseSubagentTranscript,
   refreshMainAgentModels,
+  runWithConcurrency,
 } from "./backfill.js";
+import { createActivityTracker } from "./activity.js";
 import { createStore, type Store } from "./state.js";
 
 describe("parseSubagentMeta", () => {
@@ -588,5 +591,234 @@ describe("refreshMainAgentModels", () => {
 
     expect(store.seq).toBe(prevSeq);
     expect(upserts).toHaveLength(0);
+  });
+});
+
+describe("extractActivityEnvelopes", () => {
+  const T = "2026-06-01T10:00:00.000Z";
+
+  it("returns no envelopes for empty input", () => {
+    expect(extractActivityEnvelopes([])).toEqual([]);
+  });
+
+  it("synthesises a PreToolUse envelope per tool_use block in an assistant entry", () => {
+    const envs = extractActivityEnvelopes([
+      {
+        type: "assistant",
+        sessionId: "s1",
+        cwd: "/repo",
+        timestamp: T,
+        message: {
+          content: [
+            { type: "text", text: "ok" },
+            { type: "tool_use", id: "u1", name: "Bash", input: { command: "ls" } },
+            { type: "tool_use", id: "u2", name: "Read", input: { file_path: "/x" } },
+          ],
+        },
+      },
+    ]);
+    expect(envs).toHaveLength(2);
+    expect(envs[0]).toEqual({
+      received_at: T,
+      payload: {
+        hook_event_name: "PreToolUse",
+        session_id: "s1",
+        cwd: "/repo",
+        transcript_path: "",
+        tool_name: "Bash",
+        tool_input: { command: "ls" },
+        tool_use_id: "u1",
+      },
+    });
+    expect(envs[1]?.payload).toMatchObject({ tool_name: "Read", tool_use_id: "u2" });
+  });
+
+  it("emits PostToolUseFailure for an errored tool_result, attributing the tool via tool_use_id", () => {
+    const envs = extractActivityEnvelopes([
+      {
+        type: "assistant",
+        sessionId: "s1",
+        timestamp: T,
+        message: { content: [{ type: "tool_use", id: "u1", name: "Bash", input: {} }] },
+      },
+      {
+        type: "user",
+        sessionId: "s1",
+        timestamp: "2026-06-01T10:00:05.000Z",
+        message: { content: [{ type: "tool_result", tool_use_id: "u1", is_error: true }] },
+      },
+    ]);
+    const failures = envs.filter((e) => e.payload.hook_event_name === "PostToolUseFailure");
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.payload).toMatchObject({ tool_name: "Bash", tool_use_id: "u1" });
+    expect(failures[0]?.received_at).toBe("2026-06-01T10:00:05.000Z");
+  });
+
+  it("ignores non-errored tool_result blocks", () => {
+    const envs = extractActivityEnvelopes([
+      {
+        type: "assistant",
+        sessionId: "s1",
+        timestamp: T,
+        message: { content: [{ type: "tool_use", id: "u1", name: "Bash", input: {} }] },
+      },
+      {
+        type: "user",
+        sessionId: "s1",
+        timestamp: T,
+        message: { content: [{ type: "tool_result", tool_use_id: "u1", is_error: false }] },
+      },
+    ]);
+    expect(envs.filter((e) => e.payload.hook_event_name === "PostToolUseFailure")).toEqual([]);
+  });
+
+  it("skips an errored tool_result whose tool_use_id was never seen", () => {
+    const envs = extractActivityEnvelopes([
+      {
+        type: "user",
+        sessionId: "s1",
+        timestamp: T,
+        message: { content: [{ type: "tool_result", tool_use_id: "ghost", is_error: true }] },
+      },
+    ]);
+    expect(envs).toEqual([]);
+  });
+
+  it("skips entries with no timestamp", () => {
+    expect(
+      extractActivityEnvelopes([
+        {
+          type: "assistant",
+          sessionId: "s1",
+          message: { content: [{ type: "tool_use", id: "u1", name: "Bash", input: {} }] },
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("skips entries with no session id", () => {
+    expect(
+      extractActivityEnvelopes([
+        {
+          type: "assistant",
+          timestamp: T,
+          message: { content: [{ type: "tool_use", id: "u1", name: "Bash", input: {} }] },
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("skips sub-agent entries that carry an agentId", () => {
+    expect(
+      extractActivityEnvelopes([
+        {
+          type: "assistant",
+          sessionId: "s1",
+          agentId: "a1",
+          timestamp: T,
+          message: { content: [{ type: "tool_use", id: "u1", name: "Bash", input: {} }] },
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("accepts snake_case session_id and reads cwd", () => {
+    const envs = extractActivityEnvelopes([
+      {
+        type: "assistant",
+        session_id: "s2",
+        cwd: "/w",
+        timestamp: T,
+        message: { content: [{ type: "tool_use", id: "u1", name: "Grep", input: {} }] },
+      },
+    ]);
+    expect(envs[0]?.payload).toMatchObject({ session_id: "s2", cwd: "/w", tool_name: "Grep" });
+  });
+});
+
+describe("extractActivityEnvelopes feeds the activity tracker", () => {
+  it("counts tool calls and failures by tool in the 24h snapshot", () => {
+    const now = Date.parse("2026-06-01T10:30:00.000Z");
+    const ts = "2026-06-01T10:00:00.000Z";
+    const entries = [
+      {
+        type: "assistant",
+        sessionId: "s1",
+        cwd: "/r",
+        timestamp: ts,
+        message: {
+          content: [
+            { type: "tool_use", id: "u1", name: "Bash", input: { command: "ls" } },
+            { type: "tool_use", id: "u2", name: "Read", input: {} },
+          ],
+        },
+      },
+      {
+        type: "user",
+        sessionId: "s1",
+        timestamp: ts,
+        message: { content: [{ type: "tool_result", tool_use_id: "u1", is_error: true }] },
+      },
+    ];
+    const tracker = createActivityTracker();
+    for (const env of extractActivityEnvelopes(entries)) tracker.record(env);
+    const snap = tracker.snapshot(now);
+    const totalCalls = snap.buckets.reduce((acc, b) => acc + b.tool_calls, 0);
+    expect(totalCalls).toBe(2);
+    expect(snap.failures_by_tool).toEqual([{ tool: "Bash", count: 1, calls: 1 }]);
+  });
+});
+
+describe("runWithConcurrency", () => {
+  it("processes every item exactly once", async () => {
+    const seen: number[] = [];
+    await runWithConcurrency([1, 2, 3, 4, 5], 2, async (n) => {
+      seen.push(n);
+    });
+    expect(seen.slice().sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("never runs more workers than the limit", async () => {
+    let active = 0;
+    let maxActive = 0;
+    await runWithConcurrency([1, 2, 3, 4, 5, 6], 2, async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 5));
+      active--;
+    });
+    expect(maxActive).toBe(2);
+  });
+
+  it("runs nothing for an empty list", async () => {
+    let calls = 0;
+    await runWithConcurrency([], 4, async () => {
+      calls++;
+    });
+    expect(calls).toBe(0);
+  });
+
+  it("caps workers at the item count when the limit exceeds it", async () => {
+    let active = 0;
+    let maxActive = 0;
+    await runWithConcurrency([1, 2], 8, async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 5));
+      active--;
+    });
+    expect(maxActive).toBe(2);
+  });
+
+  it("passes the item index to the worker", async () => {
+    const pairs: Array<[string, number]> = [];
+    await runWithConcurrency(["a", "b", "c"], 1, async (item, i) => {
+      pairs.push([item, i]);
+    });
+    expect(pairs).toEqual([
+      ["a", 0],
+      ["b", 1],
+      ["c", 2],
+    ]);
   });
 });

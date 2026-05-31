@@ -1,15 +1,7 @@
 import { useEffect } from "react";
-import {
-  BrowserRouter,
-  Navigate,
-  Route,
-  Routes,
-  useNavigate,
-} from "react-router-dom";
-import {
-  setNotificationNavigator,
-  useNotifications,
-} from "./hooks/use-notifications.js";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Toaster } from "./components/ui/sonner.js";
+import { setNotificationNavigator, useNotifications } from "./hooks/use-notifications.js";
 import { Dashboard } from "./pages/dashboard.js";
 
 function NotificationsBoundary() {
@@ -26,6 +18,7 @@ export function App() {
   return (
     <BrowserRouter>
       <NotificationsBoundary />
+      <Toaster />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions/:id" element={<Dashboard />} />

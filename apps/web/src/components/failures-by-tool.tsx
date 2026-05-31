@@ -16,10 +16,10 @@ export function FailuresByTool({ failures }: { failures: ToolFailureCount[] }) {
   return (
     <section data-testid="dash-failures" className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3">
-        <h2 className="font-semibold text-sm">Failures by tool · since restart</h2>
+        <h2 className="font-semibold text-sm">Failures by tool · last 24h</h2>
       </header>
       {top.length === 0 ? (
-        <div className="py-6 text-center text-fg/50 text-sm">No tool failures since restart.</div>
+        <div className="py-6 text-center text-fg/50 text-sm">No tool failures in the last 24h.</div>
       ) : (
         <ul className="flex flex-col gap-2">
           {top.map((f) => {

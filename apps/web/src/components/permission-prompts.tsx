@@ -1,6 +1,16 @@
 import type { PermissionSuggestion } from "@agent-zoo/shared";
+import { toast } from "sonner";
 
 const MAX = 6;
+
+async function copyRule(rule: string): Promise<void> {
+  try {
+    await navigator.clipboard?.writeText(rule);
+    toast.success("Copied to clipboard", { description: rule });
+  } catch {
+    toast.error("Couldn't copy to clipboard");
+  }
+}
 
 interface Props {
   fixable: number;
@@ -14,13 +24,15 @@ export function PermissionPrompts({ fixable, needsYou, suggestions }: Props) {
   return (
     <section data-testid="dash-permissions" className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="font-semibold text-sm">Permission prompts · since restart</h2>
+        <h2 className="font-semibold text-sm">Permission prompts · last 24h</h2>
         <span className="shrink-0 text-fg/50 text-xs">
           {fixable} fixable · {needsYou} need you
         </span>
       </header>
       {top.length === 0 ? (
-        <div className="py-6 text-center text-fg/50 text-sm">No permission prompts since restart.</div>
+        <div className="py-6 text-center text-fg/50 text-sm">
+          No permission prompts in the last 24h.
+        </div>
       ) : (
         <>
           <ul className="flex flex-col gap-1.5">
@@ -32,7 +44,7 @@ export function PermissionPrompts({ fixable, needsYou, suggestions }: Props) {
                 <span className="shrink-0 text-fg/50 text-xs tabular-nums">×{s.count}</span>
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard?.writeText(s.rule)}
+                  onClick={() => copyRule(s.rule)}
                   className="shrink-0 rounded border border-border px-2 py-1 text-fg/70 text-xs transition-colors hover:bg-muted/40"
                 >
                   Copy
@@ -41,8 +53,8 @@ export function PermissionPrompts({ fixable, needsYou, suggestions }: Props) {
             ))}
           </ul>
           <p className="mt-3 text-fg/40 text-xs">
-            Add to <span className="font-mono">settings.json</span> <span className="font-mono">allow</span> — review
-            before applying.
+            Add to <span className="font-mono">settings.json</span>{" "}
+            <span className="font-mono">allow</span> — review before applying.
           </p>
         </>
       )}

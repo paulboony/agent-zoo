@@ -24,10 +24,10 @@ export function ActivityChart({ buckets }: { buckets: ActivityBucket[] }) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
       <header className="mb-3 flex items-baseline justify-between">
-        <h2 className="font-semibold text-sm">Activity — since restart</h2>
+        <h2 className="font-semibold text-sm">Activity · last 24h</h2>
       </header>
       {hasActivity ? (
-        <ChartContainer config={chartConfig} className="h-[180px] w-full">
+        <ChartContainer config={chartConfig} className="h-45 w-full">
           <BarChart data={buckets} accessibilityLayer>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -43,8 +43,8 @@ export function ActivityChart({ buckets }: { buckets: ActivityBucket[] }) {
           </BarChart>
         </ChartContainer>
       ) : (
-        <div className="flex h-[180px] items-center justify-center text-fg/50 text-sm">
-          No activity since restart.
+        <div className="flex h-45 items-center justify-center text-fg/50 text-sm">
+          No activity in the last 24h.
         </div>
       )}
     </section>

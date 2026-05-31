@@ -41,24 +41,24 @@ export function DashboardOverview() {
             sublabel="blocked or errored"
             warn={attentionCount > 0}
           />
-          <StatCard label="Sessions done · 24h" value={completed24h} sublabel="ended in last 24h" />
+          <StatCard label="Sessions done" value={completed24h} sublabel="ended in last 24h" />
           <StatCard
             label="Interruptions"
             value={activity.interruptions24h}
-            sublabel="blocked on you · since restart"
+            sublabel="blocked on you · last 24h"
           />
         </StatGrid>
       </div>
 
       <ActivityChart buckets={activity.buckets} />
 
-      <FailuresByTool failures={activity.failuresByTool} />
-
       <PermissionPrompts
         fixable={activity.permissions.fixable}
         needsYou={activity.permissions.needs_you}
         suggestions={activity.permissions.suggestions}
       />
+
+      <FailuresByTool failures={activity.failuresByTool} />
     </div>
   );
 }

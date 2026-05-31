@@ -1,5 +1,5 @@
 // apps/web/src/lib/use-activity.ts
-import type { ActivityBucket, ActivityResponse, ToolFailureCount } from "@agent-zoo/shared";
+import type { ActivityBucket, ActivityResponse, PermissionSuggestion, ToolFailureCount } from "@agent-zoo/shared";
 import { useEffect, useState } from "react";
 
 const POLL_MS = 60_000;
@@ -8,9 +8,15 @@ export interface ActivityData {
   buckets: ActivityBucket[];
   interruptions24h: number;
   failuresByTool: ToolFailureCount[];
+  permissions: { fixable: number; needs_you: number; suggestions: PermissionSuggestion[] };
 }
 
-const EMPTY: ActivityData = { buckets: [], interruptions24h: 0, failuresByTool: [] };
+const EMPTY: ActivityData = {
+  buckets: [],
+  interruptions24h: 0,
+  failuresByTool: [],
+  permissions: { fixable: 0, needs_you: 0, suggestions: [] },
+};
 
 /**
  * Fetches GET /api/activity on mount and re-polls every 60s. Backs the
@@ -34,6 +40,7 @@ export function useActivity(): ActivityData {
           buckets: body.buckets,
           interruptions24h: body.interruptions_24h,
           failuresByTool: body.failures_by_tool,
+          permissions: body.permissions,
         });
       } catch {
         // keep last good data on failure (localhost dashboard, low stakes)

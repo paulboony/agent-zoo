@@ -158,6 +158,16 @@ describe("createActivityTracker", () => {
     expect(t.snapshot(now).permissions.suggestions).toEqual([{ rule: "Bash(cat *)", count: 1 }]);
   });
 
+  it.each(["AskUserQuestion", "ExitPlanMode"])(
+    "never suggests an allow rule for the interaction tool %s",
+    (tool) => {
+      const t = createActivityTracker();
+      t.record(env("PreToolUse", thisHour, { tool_name: tool }));
+      t.record(env("PermissionRequest", thisHour));
+      expect(t.snapshot(now).permissions.suggestions).toEqual([]);
+    },
+  );
+
   it("counts a prompt with no pending tool as fixable but yields no suggestion", () => {
     const t = createActivityTracker();
     t.record(env("PermissionRequest", thisHour));

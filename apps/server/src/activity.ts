@@ -50,6 +50,12 @@ function bashCommand(toolInput: unknown): string | undefined {
 // so we don't mistake a flag or its argument for the real subcommand.
 const SUBCOMMAND_TOKEN = /^[A-Za-z][\w-]*$/;
 
+// Tools that are inherently user-interaction (the agent asking the user) —
+// AskUserQuestion poses a question, ExitPlanMode asks the user to approve a
+// plan. They block on the user but are never permission-gated, so an allow
+// rule for them is meaningless and they don't produce allow-rule suggestions.
+const NON_GATEABLE_TOOLS = new Set(["AskUserQuestion", "ExitPlanMode"]);
+
 /** Suggested allowlist rule for a gated tool/command (program + subcommand for Bash). */
 function deriveRule(tool: string, command: string | undefined): string {
   if (tool !== "Bash" || !command) return tool;
@@ -91,6 +97,10 @@ export function createActivityTracker(): ActivityTracker {
   function addSuggestion(c: Counts, sid: string): void {
     const pend = pending.get(sid);
     if (!pend) return;
+    // Interaction tools like AskUserQuestion are the agent asking the user —
+    // they're never permission-gated, so an allow rule for them is
+    // meaningless. Skip them as suggestions (they still count as needs_you).
+    if (NON_GATEABLE_TOOLS.has(pend.tool)) return;
     const rule = deriveRule(pend.tool, pend.command);
     c.suggestions[rule] = (c.suggestions[rule] ?? 0) + 1;
   }

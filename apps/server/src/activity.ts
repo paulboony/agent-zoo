@@ -44,14 +44,35 @@ function bashCommand(toolInput: unknown): string | undefined {
   return undefined;
 }
 
+// A "subcommand" is a bare word: starts with a letter, then word chars or
+// hyphens. This deliberately excludes flags (`-C`), paths (`/repo`,
+// `notes.md`), URLs (`https://x`), redirects (`>`), and quoted args (`"x"`),
+// so we don't mistake a flag or its argument for the real subcommand.
+const SUBCOMMAND_TOKEN = /^[A-Za-z][\w-]*$/;
+
 /** Suggested allowlist rule for a gated tool/command (program + subcommand for Bash). */
 function deriveRule(tool: string, command: string | undefined): string {
-  if (tool === "Bash" && command) {
-    const tokens = command.trim().split(/\s+/);
-    if (tokens.length >= 2) return `Bash(${tokens[0]} ${tokens[1]} *)`;
-    if (tokens[0]) return `Bash(${tokens[0]} *)`;
-  }
-  return tool;
+  if (tool !== "Bash" || !command) return tool;
+  // A leading `cd <dir> &&` is noise: suggesting `Bash(cd <dir> *)` would
+  // allow *any* command run in that directory. Split on shell separators
+  // and pick the first sub-command that isn't a `cd`. (Heuristic — quoted
+  // separators aren't parsed; the card says "review before applying".)
+  const segments = command
+    .split(/&&|\|\|?|;/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const meaningful = segments.find((s) => !/^cd(\s|$)/.test(s)) ?? command.trim();
+  const tokens = meaningful.split(/\s+/);
+  const prog = tokens[0];
+  if (!prog) return tool;
+  // `cd <anything>` always collapses to a path-agnostic rule.
+  if (prog === "cd") return "Bash(cd *)";
+  // The subcommand is the first bare word after the program, so a global
+  // flag and its argument (`git -C /repo push` → `git push`) or a redirect
+  // (`cat > notes.md` → `cat`) don't end up in the rule. Falls back to
+  // prog-only when there's no real subcommand (`curl -s https://x` → `curl`).
+  const sub = tokens.slice(1).find((t) => SUBCOMMAND_TOKEN.test(t));
+  return sub ? `Bash(${prog} ${sub} *)` : `Bash(${prog} *)`;
 }
 
 export function createActivityTracker(): ActivityTracker {

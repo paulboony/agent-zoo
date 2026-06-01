@@ -79,6 +79,85 @@ describe("createActivityTracker", () => {
     expect(rules).toEqual(["Bash(ls *)", "WebFetch"]);
   });
 
+  it("skips a leading `cd <dir> &&` so the rule targets the real command", () => {
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "cd /Users/paul/git/etrainu/etrainu-ui && pnpm test" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([
+      { rule: "Bash(pnpm test *)", count: 1 },
+    ]);
+  });
+
+  it("skips a `cd` segment joined with a semicolon", () => {
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "cd /tmp; npm run build" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([
+      { rule: "Bash(npm run *)", count: 1 },
+    ]);
+  });
+
+  it("collapses a bare `cd <dir>` to Bash(cd *) instead of a path-specific rule", () => {
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "cd /Users/paul/git/etrainu/etrainu-ui" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([{ rule: "Bash(cd *)", count: 1 }]);
+  });
+
+  it("skips a global flag and its argument to reach the real subcommand", () => {
+    // `git -C /repo` is a global flag (+ path), not a subcommand.
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "git -C /repo push" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([
+      { rule: "Bash(git push *)", count: 1 },
+    ]);
+  });
+
+  it("falls back to prog-only when there is no real subcommand (flags/args only)", () => {
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "curl -s https://example.com" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([{ rule: "Bash(curl *)", count: 1 }]);
+  });
+
+  it("ignores a redirect and its target file", () => {
+    const t = createActivityTracker();
+    t.record(
+      env("PreToolUse", thisHour, {
+        tool_name: "Bash",
+        tool_input: { command: "cat > notes.md" },
+      }),
+    );
+    t.record(env("PermissionRequest", thisHour));
+    expect(t.snapshot(now).permissions.suggestions).toEqual([{ rule: "Bash(cat *)", count: 1 }]);
+  });
+
   it("counts a prompt with no pending tool as fixable but yields no suggestion", () => {
     const t = createActivityTracker();
     t.record(env("PermissionRequest", thisHour));

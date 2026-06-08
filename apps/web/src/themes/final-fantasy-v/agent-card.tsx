@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
  * Final Fantasy V agent card — battle-menu vibe.
  *
  * Visually proves the `theme.agentCard` hook: the navy + double-white
- * border chrome comes from the theme's existing `mascots.css` rule on
+ * border chrome comes from the theme's existing `theme.css` rule on
  * `[data-slot="card"]`, and this component layers a JRPG status-menu
  * layout on top — ALL CAPS character header, gold stat labels with
  * dotted-line connectors, JetBrains Mono throughout.
@@ -45,8 +45,9 @@ export default function FFAgentCard(props: AgentCardProps) {
         <div className="min-w-0 flex-1">
           <div className="truncate font-bold text-sm uppercase tracking-widest">{name}</div>
           <div className="truncate text-[#bfc2ff] text-xs uppercase tracking-wider">
-            {isMain ? "PARTY LEADER" : `JOB · ${displayKind.toUpperCase()}`}
+            {isMain ? "PARTY LEADER" : "JOB"}
           </div>
+          <div className="truncate text-[#bfc2ff]/70 text-[10px]">{agent.model ?? "—"}</div>
         </div>
       </div>
       <div className="mt-1 flex flex-col gap-1 border-white/20 border-t pt-2">

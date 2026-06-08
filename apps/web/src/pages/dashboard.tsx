@@ -34,7 +34,7 @@ export function Dashboard() {
             <ThemePicker />
           </div>
         </header>
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="theme-content min-h-0 flex-1 overflow-hidden">
           {location.pathname === "/settings" ? (
             <Settings />
           ) : selected ? (

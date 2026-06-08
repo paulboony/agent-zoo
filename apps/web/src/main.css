@@ -122,3 +122,14 @@ body {
 [data-slot="sidebar-content"]::-webkit-scrollbar-thumb:hover {
   background-color: var(--muted-foreground);
 }
+
+/* Pill-shaped controls keep their default roundedness even under
+   sharp-corner themes. Themes square everything in the content area via
+   `.theme-content * { border-radius: 0 !important }`; for a toggle/switch a
+   square track + thumb is a broken affordance. These selectors are
+   `.theme-content`-scoped so their specificity (0,2,0) beats the theme's
+   `.theme-content *` (0,1,0) rule. */
+.theme-content [data-slot="switch"],
+.theme-content [data-slot="switch-thumb"] {
+  border-radius: 9999px !important;
+}

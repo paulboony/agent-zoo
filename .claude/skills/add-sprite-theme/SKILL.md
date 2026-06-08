@@ -76,15 +76,15 @@ Create `apps/web/src/themes/<id>/`:
    Change `id` and `name`, keep `mascot_mode: "sprite"`, plug in the
    `mascot_sprite` block.
 
-2. **`mascots.css`** — copy verbatim from any existing sprite theme.
+2. **`theme.css`** — copy verbatim from any existing sprite theme.
    These files are byte-identical across all sprite themes and only
    contain the `.mascot-sprite` rules, the per-frame-count `@keyframes
    sprite-2/3/4`, and the reduced-motion guard. **Do not customise per
    theme** — animation timing is driven by `theme.json`, not CSS.
 
    ```bash
-   cp apps/web/src/themes/final-fantasy-v/mascots.css \
-      apps/web/src/themes/<id>/mascots.css
+   cp apps/web/src/themes/final-fantasy-v/theme.css \
+      apps/web/src/themes/<id>/theme.css
    ```
 
 3. **`preview.png`** — copy any existing theme's `preview.png` as a

@@ -1,73 +1,77 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap");
 
 /* Crystal Legacy type pairing — Space Grotesk for headings, Inter for
-   body, JetBrains Mono for labels/badges/stats. */
-body {
+   body, JetBrains Mono for labels/badges/stats. Page-styling rules are
+   scoped to `.theme-content` so the chrome (header + sidebar) keeps its
+   default structural styling; mascot rules stay global. */
+.theme-content {
   font-family: "Inter", system-ui, sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
+.theme-content h1,
+.theme-content h2,
+.theme-content h3,
+.theme-content h4,
+.theme-content h5,
+.theme-content h6 {
   font-family: "Space Grotesk", system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-[data-slot="badge"] {
+.theme-content [data-slot="badge"] {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-weight: 500;
   letter-spacing: 0.06em;
 }
 
-/* 16-bit grid: hard 90° corners on every element. */
-*,
-*::before,
-*::after {
+/* 16-bit grid: hard 90° corners on every element in the content area. */
+.theme-content *,
+.theme-content *::before,
+.theme-content *::after {
   border-radius: 0 !important;
 }
 
-/* Window containers (cards + sidebar): signature top-to-bottom navy
-   gradient plus the triple-layered window border — 2px white outer,
-   1px black inner line via inset shadow, 1px white innermost. */
-[data-slot="card"],
-[data-sidebar="sidebar"] {
-  background: linear-gradient(to bottom, #000080, #000040) !important;
+/* Window containers (cards): signature top-to-bottom navy gradient plus
+   the FF Pixel-Remaster window: rounded corners, a brighter top-to-bottom
+   blue gradient, a pale-blue rim, a glossy top highlight, a dark inner
+   bevel, and a soft outer drop shadow. The `[data-slot="card"]` selector
+   (0,2,0) out-specifies the theme's `.theme-content *` radius reset (0,1,0),
+   so the card rounds back while the rest of the content stays square. */
+.theme-content [data-slot="card"] {
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, #2b4cc4 0%, #14246e 45%, #0b1547 100%) !important;
   color: #ffffff !important;
-}
-
-[data-slot="card"] {
-  border: 2px solid #ffffff !important;
+  border: 2px solid #bcd4ff !important;
   box-shadow:
-    inset 0 0 0 1px #000000,
-    inset 0 0 0 2px #ffffff !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* White text on the navy gradient gets a 1px hard drop shadow per spec.
    Excludes inner badge content so chips keep their own contrast. */
-[data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *),
-[data-sidebar="sidebar"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
+.theme-content [data-slot="card"] :not([data-slot="badge"]):not([data-slot="badge"] *) {
   text-shadow: 1px 1px 0 #000000;
 }
 
 /* Status chips: gold border per the Crystal Legacy chip spec, with
    per-state text colours chosen for contrast against the bg. */
-[data-testid^="status-"] {
+.theme-content [data-testid^="status-"] {
   border-color: #e9c349 !important;
 }
-[data-testid="status-running"],
-[data-testid="status-ended"] {
+.theme-content [data-testid="status-running"],
+.theme-content [data-testid="status-ended"] {
   color: #ffffff;
 }
-[data-testid="status-blocked"],
-[data-testid="status-awaiting_user"],
-[data-testid="status-stale"],
-[data-testid="status-error"] {
+.theme-content [data-testid="status-blocked"],
+.theme-content [data-testid="status-awaiting_user"],
+.theme-content [data-testid="status-stale"],
+.theme-content [data-testid="status-error"] {
   color: #1a1a1a;
 }
 
-/* Sprite-mode rules: .mascot[data-render="sprite"] is the cell-sized
-   wrapper, .mascot-sprite is the scaled inner element with the
-   background-image. Variables --row, --frame-N, --dur, --stride-x,
-   --stride-y, --pad-x, --pad-y come from inline styles. */
+/* Sprite-mode rules (global — mascots also render in the sidebar). */
 .mascot-sprite {
   background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1);
   background-position-y: calc((var(--pad-y) + var(--row) * var(--stride-y)) * -1);

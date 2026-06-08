@@ -8,7 +8,7 @@ import type { AgentCardProps } from "@/lib-theme/agent-card-props.js";
  *
  * Visual cues:
  *   * Flat royal-blue panel (chrome inherited from `data-slot="card"`
- *     in the theme's mascots.css — solid bg, double-line white border).
+ *     in the theme's theme.css — solid bg, double-line white border).
  *   * Hard 2px white horizontal rules between sections — no dotted
  *     connectors. Solid pixel typography only.
  *   * `▶` selection caret in front of the character name (classic
@@ -26,7 +26,8 @@ function Divider() {
 export default function FF1AgentCard(props: AgentCardProps) {
   const { agent, isMain, displayKind, mascotState, toolLabel, toolSummary, size } = props;
   const name = (agent.label ?? agent.agent_type ?? agent.id).toUpperCase();
-  const kind = isMain ? "PARTY LEADER" : displayKind.toUpperCase();
+  const role = isMain ? "PARTY LEADER" : "JOB";
+  const model = agent.model ?? "—";
   const status = agent.status.toUpperCase().replace(/_/g, " ");
   const cmd = toolLabel ? `${toolLabel}${toolSummary ? `: ${toolSummary}` : ""}` : "—";
 
@@ -43,7 +44,8 @@ export default function FF1AgentCard(props: AgentCardProps) {
             <span className="shrink-0">▶</span>
             <span className="min-w-0 flex-1 truncate">{name}</span>
           </div>
-          <div className="truncate text-xs tracking-wider uppercase">{kind}</div>
+          <div className="truncate text-xs tracking-wider uppercase">{role}</div>
+          <div className="truncate text-[10px] text-white/70">{model}</div>
         </div>
       </div>
       <Divider />

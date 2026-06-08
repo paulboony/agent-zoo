@@ -50,7 +50,7 @@ for sessions whose backfill missed it.
 | Add a `MascotKind` | `apps/web/src/lib-theme/types.ts` (union) + theme `mascots/<kind>.svg` for each SVG theme + `rows.<kind>` in each sprite theme + `validate.ts` REQUIRED_KINDS + `registry.ts` KIND_FILES + optionally a rule in `lib/mascot-kind.ts` LABEL_RULES |
 | Add a label → mascot rule | `apps/web/src/lib/mascot-kind.ts` (LABEL_RULES) |
 | Add a notification event | `use-notifications.ts` (PREF_KEYS + DEFAULT_PREFS + dispatchNotifications) + `notifications-section.tsx` EVENTS + spec types |
-| Add a theme | New folder under `apps/web/src/themes/<id>/` with `theme.json`, `mascots.css`, `preview.png`, `mascots/*.svg` for SVG mode or `mascots/sprites.png` for sprite mode |
+| Add a theme | New folder under `apps/web/src/themes/<id>/` with `theme.json`, `theme.css`, `preview.png`, `mascots/*.svg` for SVG mode or `mascots/sprites.png` for sprite mode |
 | Add a hook event | `packages/shared/src/hooks.ts` HookEventName + `reducer.ts` applyTransition case |
 
 ## Themes & mascots
@@ -64,8 +64,14 @@ for sessions whose backfill missed it.
   `frames` is an array of column indices (can be non-contiguous).
 - Mascot CSS variables (`--row`, `--frame-N`, `--stride-x/y`, `--pad-x/y`,
   `--dur`) come from inline styles on `.mascot-sprite`. Theme's
-  `mascots.css` only needs the keyframes (`sprite-2`, `sprite-3`,
+  `theme.css` only needs the keyframes (`sprite-2`, `sprite-3`,
   `sprite-4`) — `<Mascot>` does the math.
+- A theme's `theme.css` is injected globally, but its **page-styling**
+  rules (`body`/`h1–h6`/`*`/`[data-slot="card"]`/`[data-slot="badge"]`/
+  `[data-testid^="status-"]`) must be prefixed with `.theme-content` so they
+  only affect the main content area, not the header/sidebar chrome. Mascot
+  rules (`.mascot*`, `@keyframes`, reduced-motion) stay global — mascots
+  also render in the sidebar. Do **not** target `[data-sidebar="sidebar"]`.
 - UI mascot kind is resolved by `resolveDisplayKind(agent)` in
   `apps/web/src/lib/mascot-kind.ts`. Order: `main` → label regex match →
   `"general"`. Label is the parent's Task `tool_input.description`,

@@ -93,7 +93,7 @@ export function validateThemes(themes: Record<string, Theme>): ThemeValidationIs
     if (!theme.mascotsCss.includes("prefers-reduced-motion")) {
       issues.push({
         themeId: theme.id,
-        message: "mascots.css must include a @media (prefers-reduced-motion) block",
+        message: "theme.css must include a @media (prefers-reduced-motion) block",
       });
     }
   }

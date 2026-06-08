@@ -33,7 +33,7 @@
     "--sidebar-foreground": "#ffffff",
     "--sidebar-primary": "#ffffff",
     "--sidebar-primary-foreground": "#000000",
-    "--sidebar-accent": "#000080",
+    "--sidebar-accent": "rgba(255, 255, 255, 0.1)",
     "--sidebar-accent-foreground": "#ffffff",
     "--sidebar-border": "#ffffff",
     "--sidebar-ring": "#ffffff"

@@ -2,60 +2,61 @@
 
 /* 8-Bit Executive type pairing — Space Grotesk for headings/labels
    (geometric, pixel-adjacent), Hanken Grotesk for body (legible).
-   Scoped to this theme since mascots.css is live-replaced on switch. */
-body {
+   Page-styling rules are scoped to `.theme-content` so the chrome keeps
+   its default structural styling; mascot rules stay global. */
+.theme-content {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
+.theme-content h1,
+.theme-content h2,
+.theme-content h3,
+.theme-content h4,
+.theme-content h5,
+.theme-content h6 {
   font-family: "Space Grotesk", system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-/* Per-status text colours. Backgrounds come from --status-* tokens via
-   the StatusBadge component; text-fg (the global foreground) doesn't
-   read well on the saturated running/error backgrounds. */
-/* 8-bit / Retro-Brutalism: sharp corners everywhere. The theme's
-   mascots.css is live-replaced on switch, so this only affects the
-   page while Super Mario Bros. is active. */
-*,
-*::before,
-*::after {
+/* 8-bit / Retro-Brutalism: sharp corners everywhere in the content area. */
+.theme-content *,
+.theme-content *::before,
+.theme-content *::after {
   border-radius: 0 !important;
 }
 
 /* Level 1 "Block" treatment: cards get a 2px hard border + an offset
    solid drop shadow, no blur. */
-[data-slot="card"] {
+.theme-content [data-slot="card"] {
   border-width: 2px !important;
   border-color: #1a1a1a !important;
   box-shadow: 4px 4px 0 0 #cccccc !important;
 }
 
-[data-testid^="status-"] {
+.theme-content [data-testid^="status-"] {
   border-color: #1a1a1a !important;
 }
-[data-testid="status-running"],
-[data-testid="status-error"],
-[data-testid="status-ended"] {
+.theme-content [data-testid="status-running"],
+.theme-content [data-testid="status-error"],
+.theme-content [data-testid="status-ended"] {
   color: #ffffff;
 }
-[data-testid="status-awaiting_user"],
-[data-testid="status-blocked"],
-[data-testid="status-stale"] {
+.theme-content [data-testid="status-awaiting_user"],
+.theme-content [data-testid="status-blocked"],
+.theme-content [data-testid="status-stale"] {
   color: #1a1a1a;
 }
 
-/* Sprite-mode mascots. .mascot[data-render="sprite"] is the cell-sized
-   wrapper; its child .mascot-sprite is the scaled inner element with the
-   background-image. The CSS variables --row, --frame-N, --dur, --stride-x,
-   --stride-y, --pad-x, --pad-y come from inline styles on .mascot-sprite.
+/* Sprite-mode mascots (global — mascots also render in the sidebar).
+   .mascot[data-render="sprite"] is the cell-sized wrapper; its child
+   .mascot-sprite is the scaled inner element with the background-image.
+   The CSS variables --row, --frame-N, --dur, --stride-x, --stride-y,
+   --pad-x, --pad-y come from inline styles on .mascot-sprite.
 
    Each animation frame is one stop in a keyframe with step-end timing —
    the browser holds each value until the next keyframe, then snaps. Frame
    columns can be non-contiguous (e.g. running might use cols 0 and 3). */
-
 .mascot-sprite {
   background-position-x: calc((var(--pad-x) + var(--frame-0) * var(--stride-x)) * -1);
   background-position-y: calc((var(--pad-y) + var(--row) * var(--stride-y)) * -1);

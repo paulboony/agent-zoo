@@ -8,7 +8,7 @@ type EagerStringRecord = Record<string, string>;
 const manifests = import.meta.glob<{ default: ThemeManifest }>("../themes/*/theme.json", {
   eager: true,
 });
-const cssModules = import.meta.glob("../themes/*/mascots.css", {
+const cssModules = import.meta.glob("../themes/*/theme.css", {
   eager: true,
   query: "?inline",
   import: "default",
@@ -59,7 +59,7 @@ function buildRegistry(): Record<string, Theme> {
     const themeId = manifest.id;
     const folder = manifestPath.replace(/\/theme\.json$/, "");
 
-    const cssKey = `${folder}/mascots.css`;
+    const cssKey = `${folder}/theme.css`;
     const previewKey = `${folder}/preview.png`;
     const soundKey = `${folder}/notification.mp3`;
     const spriteKey = `${folder}/mascots/sprites.png`;

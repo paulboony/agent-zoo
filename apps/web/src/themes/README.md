@@ -7,7 +7,7 @@ Each theme is a folder under this directory. Themes are auto-registered — no c
 ```
 <theme-id>/
 ├── theme.json
-├── mascots.css
+├── theme.css
 ├── preview.png        (256×256)
 └── mascots/
     ├── main.svg
@@ -34,4 +34,4 @@ Optional: `notification.mp3` (short audio file).
 
 ## CSS animation conventions
 
-`mascots.css` is loaded as a string and injected into a `<style>` tag at runtime. Use attribute selectors (`.mascot[data-state="running"]`). Every theme MUST include `@media (prefers-reduced-motion: reduce) { .mascot * { animation: none !important; } }`.
+`theme.css` is loaded as a string and injected into a `<style>` tag at runtime. Use attribute selectors (`.mascot[data-state="running"]`). Every theme MUST include `@media (prefers-reduced-motion: reduce) { .mascot * { animation: none !important; } }`. Scope page-styling rules (`body`/headings/`*`/`[data-slot]`/`[data-testid^="status-"]`) to `.theme-content` so they don't affect the header/sidebar chrome; keep mascot rules global. Don't target `[data-sidebar="sidebar"]`.

@@ -1,9 +1,19 @@
-import { Button } from "@/components/ui/button.js";
+import { buttonVariants } from "@/components/ui/button.js";
 import { Card } from "@/components/ui/card.js";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.js";
 import { ScrollArea } from "@/components/ui/scroll-area.js";
 import { Separator } from "@/components/ui/separator.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip.js";
+import { cn } from "@/lib/cn";
 import { resolveDisplayKind } from "@/lib/mascot-kind.js";
+import { ListFilter } from "lucide-react";
 import { useActiveTheme } from "@/lib-theme/context.js";
 import type { AgentState, AgentStatus, SessionState } from "@agent-zoo/shared";
 import { statusUrgency } from "@agent-zoo/shared";
@@ -183,7 +193,7 @@ function SubAgentSection({ subs, filter }: { subs: AgentState[]; filter: AgentFi
 
   return (
     <div className="mt-6 w-full">
-      <div className="grid w-full gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
+      <div className="grid w-full gap-3 [&>*]:min-w-0 [grid-template-columns:repeat(auto-fit,minmax(min(24rem,100%),1fr))]">
         {active.map((s) => (
           <AgentNode key={s.id} agent={s} size={64} />
         ))}
@@ -214,21 +224,28 @@ function AgentFilterToggle({
   onChange: (value: AgentFilter) => void;
   disabled?: boolean;
 }) {
+  const current = AGENT_FILTERS.find((f) => f.key === value)?.label ?? "All";
   return (
-    <div className="inline-flex gap-0.5 rounded-md border p-0.5">
-      {AGENT_FILTERS.map((f) => (
-        <Button
-          key={f.key}
-          variant={value === f.key ? "secondary" : "ghost"}
-          size="xs"
-          aria-pressed={value === f.key}
-          disabled={disabled}
-          onClick={() => onChange(f.key)}
-        >
-          {f.label}
-        </Button>
-      ))}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+        disabled={disabled}
+        title={`Filter: ${current}`}
+      >
+        <ListFilter />
+        <span className="sr-only">Filter agents</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel className="text-muted-foreground text-xs">Show</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={value} onValueChange={(v) => onChange(v as AgentFilter)}>
+          {AGENT_FILTERS.map((f) => (
+            <DropdownMenuRadioItem key={f.key} value={f.key}>
+              {f.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -268,7 +285,7 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
         <div className="flex flex-col items-center">
           {matchesFilter(main, effectiveFilter) && (
             <div className="w-full">
-              <AgentNode agent={main} size={64} />
+              <AgentNode agent={main} />
             </div>
           )}
           {subs.length > 0 && <SubAgentSection subs={subs} filter={effectiveFilter} />}

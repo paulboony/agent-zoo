@@ -285,7 +285,7 @@ function AgentTree({ agents }: { agents: AgentState[] }) {
         <div className="flex flex-col items-center">
           {matchesFilter(main, effectiveFilter) && (
             <div className="w-full">
-              <AgentNode agent={main} />
+              <AgentNode agent={main} size={64} />
             </div>
           )}
           {subs.length > 0 && <SubAgentSection subs={subs} filter={effectiveFilter} />}

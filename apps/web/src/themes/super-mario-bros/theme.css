@@ -38,13 +38,13 @@
   border-color: #1a1a1a !important;
 }
 .theme-content [data-testid="status-running"],
-.theme-content [data-testid="status-error"],
-.theme-content [data-testid="status-ended"] {
+.theme-content [data-testid="status-error"] {
   color: #ffffff;
 }
 .theme-content [data-testid="status-awaiting_user"],
 .theme-content [data-testid="status-blocked"],
-.theme-content [data-testid="status-stale"] {
+.theme-content [data-testid="status-stale"],
+.theme-content [data-testid="status-ended"] {
   color: #1a1a1a;
 }
 

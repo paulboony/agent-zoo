@@ -15,7 +15,7 @@
     "--status-idle": "#d1d5db",
     "--status-error": "#e52521",
     "--status-stale": "#9c9c9c",
-    "--status-ended": "#9c27b0",
+    "--status-ended": "#e2e3e5",
     "--border": "#926f6a",
     "--input": "#fff0ee",
     "--ring": "#be000c",

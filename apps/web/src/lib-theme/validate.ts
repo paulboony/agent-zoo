@@ -6,10 +6,10 @@ const REQUIRED_TOKENS = [
   "--muted",
   "--accent",
   "--accent-2",
-  "--status-running",
-  "--status-waiting",
-  "--status-idle",
-  "--status-error",
+  "--status-bg-running",
+  "--status-bg-blocked",
+  "--status-bg-awaiting_user",
+  "--status-bg-error",
 ];
 
 const REQUIRED_KINDS: MascotKind[] = [

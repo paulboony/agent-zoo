@@ -70,12 +70,12 @@
   background-color: #1a1a1a !important;
   border: 1px solid #ffffff !important;
 }
-.theme-content [data-testid="status-running"]       { color: var(--status-running); }
-.theme-content [data-testid="status-blocked"]        { color: var(--status-waiting); }
-.theme-content [data-testid="status-awaiting_user"]  { color: var(--status-idle); }
-.theme-content [data-testid="status-stale"]          { color: var(--status-stale); }
-.theme-content [data-testid="status-error"]          { color: var(--status-error); }
-.theme-content [data-testid="status-ended"]          { color: var(--status-ended); }
+.theme-content [data-testid="status-running"]       { color: var(--status-bg-running) !important; }
+.theme-content [data-testid="status-blocked"]        { color: var(--status-bg-blocked) !important; }
+.theme-content [data-testid="status-awaiting_user"]  { color: var(--status-bg-awaiting_user) !important; }
+.theme-content [data-testid="status-stale"]          { color: var(--status-bg-stale) !important; }
+.theme-content [data-testid="status-error"]          { color: var(--status-bg-error) !important; }
+.theme-content [data-testid="status-ended"]          { color: var(--status-bg-ended) !important; }
 
 /* Sprite-mode rules: .mascot[data-render="sprite"] is the cell-sized
    wrapper, .mascot-sprite is the scaled inner element with the

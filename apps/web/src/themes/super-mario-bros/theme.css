@@ -37,16 +37,9 @@
 .theme-content [data-testid^="status-"] {
   border-color: #1a1a1a !important;
 }
-.theme-content [data-testid="status-running"],
-.theme-content [data-testid="status-error"] {
-  color: #ffffff;
-}
-.theme-content [data-testid="status-awaiting_user"],
-.theme-content [data-testid="status-blocked"],
-.theme-content [data-testid="status-stale"],
-.theme-content [data-testid="status-ended"] {
-  color: #1a1a1a;
-}
+/* Badge text colours come from the theme's `--status-text-<status>` tokens
+   (see theme.json), applied inline by <StatusBadge> — light on the dark
+   backgrounds, dark on the light amber `blocked` chip. */
 
 /* Sprite-mode mascots (global — mascots also render in the sidebar).
    .mascot[data-render="sprite"] is the cell-sized wrapper; its child

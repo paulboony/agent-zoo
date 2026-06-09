@@ -13,15 +13,6 @@ const LABEL: Record<SessionStatus, string> = {
   error: "Error",
 };
 
-const DOT_VAR: Record<SessionStatus, string> = {
-  running: "var(--status-running)",
-  blocked: "var(--status-waiting)",
-  awaiting_user: "var(--status-idle)",
-  stale: "var(--status-stale)",
-  ended: "var(--status-ended)",
-  error: "var(--status-error)",
-};
-
 /** "Bash(rm -rf ...)" -> "ToolName(...)" — treat as a permission prompt. */
 const PERMISSION_PROMPT = /^[A-Z]\w+\(/;
 
@@ -59,7 +50,7 @@ export function SessionActivity({ session, variant }: Props) {
   const duration = showDuration ? formatDuration(now - lastEventMs) : undefined;
   const label = labelFor(session);
   const sub = subTextFor(session);
-  const dot = DOT_VAR[session.status];
+  const dot = `var(--status-bg-${session.status})`;
 
   // The session card already shows status (StatusBadge) and recency
   // ("active <TimeAgo>"), so the card variant renders only the goal line

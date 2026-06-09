@@ -26,18 +26,17 @@ import { TimeAgo } from "./time-ago.js";
 import { WorktreeBadge } from "./worktree-badge.js";
 
 /**
- * Per-status visual info for the agent card:
- *  - `glyph`: shape varies so the status reads without colour.
- *  - `varName`: suffix for the matching `--status-<x>` CSS variable
- *    (`blocked` → `waiting`, because the token is `--status-waiting`).
+ * Per-status glyph for the agent card — the shape varies so status reads
+ * without relying on colour. The colour itself comes from the matching
+ * `--status-<status>` CSS variable (names align 1:1 with AgentStatus).
  */
-const STATUS_INFO: Record<AgentStatus, { glyph: string; varName: string }> = {
-  running: { glyph: "●", varName: "running" },
-  blocked: { glyph: "◐", varName: "waiting" },
-  awaiting_user: { glyph: "○", varName: "idle" },
-  stale: { glyph: "◌", varName: "stale" },
-  error: { glyph: "✗", varName: "error" },
-  ended: { glyph: "⊘", varName: "ended" },
+const STATUS_GLYPH: Record<AgentStatus, string> = {
+  running: "●",
+  blocked: "◐",
+  awaiting_user: "○",
+  stale: "◌",
+  error: "✗",
+  ended: "⊘",
 };
 
 function buildAgentCardProps(agent: AgentState, size: number): AgentCardProps {
@@ -85,7 +84,7 @@ function DefaultAgentCard({
   const name = agent.label ?? agent.agent_type ?? agent.id;
   const showId = agent.id !== "main";
   const toolCall = toolLabel ? `${toolLabel}(${toolSummary ?? ""})` : null;
-  const statusInfo = STATUS_INFO[agent.status];
+  const statusGlyph = STATUS_GLYPH[agent.status];
 
   // The static portion of the stats line — calls / errors / model.
   // The time portion ticks every second and is rendered by <TimeAgo>
@@ -111,11 +110,11 @@ function DefaultAgentCard({
             <TooltipTrigger asChild>
               <span
                 className="shrink-0 leading-none"
-                style={{ color: `var(--status-${statusInfo.varName})` }}
+                style={{ color: `var(--status-bg-${agent.status})` }}
                 role="img"
                 aria-label={agent.status}
               >
-                {statusInfo.glyph}
+                {statusGlyph}
               </span>
             </TooltipTrigger>
             <TooltipContent>{agent.status}</TooltipContent>

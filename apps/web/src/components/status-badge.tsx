@@ -11,21 +11,15 @@ const LABELS: Record<SessionStatus, string> = {
   error: "error",
 };
 
-const COLOR_VARS: Record<SessionStatus, string> = {
-  running: "var(--status-running)",
-  blocked: "var(--status-waiting)",
-  awaiting_user: "var(--status-idle)",
-  stale: "var(--status-stale)",
-  ended: "var(--status-ended)",
-  error: "var(--status-error)",
-};
-
 export function StatusBadge({ status }: { status: SessionStatus }) {
   return (
     <Badge
       data-testid={`status-${status}`}
-      className={cn("border-transparent text-fg")}
-      style={{ backgroundColor: COLOR_VARS[status] }}
+      className={cn("border-transparent")}
+      style={{
+        backgroundColor: `var(--status-bg-${status})`,
+        color: `var(--status-text-${status}, var(--fg))`,
+      }}
     >
       {LABELS[status]}
     </Badge>

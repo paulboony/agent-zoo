@@ -68,15 +68,16 @@ export default function SMBAgentCard(props: AgentCardProps) {
           size={size}
           className="relative z-10 mb-2.5"
         />
-        {/* Status speech bubble — square pixel bubble (the theme squares
-            corners anyway) with a dark, left-pointing tail aimed at the
-            mascot. White-on-sky for contrast; the rotated-square tail
-            inherits the bubble's fill + border. */}
-        <div className="relative z-10 mt-1 self-start whitespace-nowrap border-2 border-[#291715] bg-white px-2 py-0.5 font-bold text-[#291715] text-[10px] uppercase tracking-wide">
+        {/* Status speech bubble — white chip with a dark, left-pointing tail
+            aimed at the mascot. White-on-sky for contrast; the rotated-square
+            tail inherits the bubble's fill + border. The slight corner
+            rounding comes from theme.css (`.status-bubble`), which
+            out-specifies the theme's `* { border-radius: 0 }` reset. */}
+        <div className="status-bubble relative z-10 mt-1 self-start whitespace-nowrap border-2 border-[#291715] bg-white px-2 py-0.5 font-bold text-[#291715] text-[10px] uppercase tracking-wide">
           {status}
           <div
             aria-hidden
-            className="absolute top-1/2 -left-[5px] size-2 -translate-y-1/2 rotate-45 border-[#291715] border-b-2 border-l-2 bg-white"
+            className="absolute top-1/2 -left-1.25 size-2 -translate-y-1/2 rotate-45 border-[#291715] border-b-2 border-l-2 bg-white"
           />
         </div>
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-2.5 bg-[#9c5a3c]" />

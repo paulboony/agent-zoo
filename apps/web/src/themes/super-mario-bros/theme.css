@@ -34,6 +34,13 @@
   box-shadow: 4px 4px 0 0 #cccccc !important;
 }
 
+/* Status speech bubble: a touch of corner rounding. `.theme-content
+   .status-bubble` (0,2,0) out-specifies the `* { border-radius: 0 }` reset
+   (0,1,0); the square tail is unaffected. */
+.theme-content .status-bubble {
+  border-radius: 3px !important;
+}
+
 .theme-content [data-testid^="status-"] {
   border-color: #1a1a1a !important;
 }
